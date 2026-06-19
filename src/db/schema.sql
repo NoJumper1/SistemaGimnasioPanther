@@ -53,6 +53,13 @@ CREATE TABLE IF NOT EXISTS checkins (
   registered_by INTEGER REFERENCES admins(id)
 );
 
+CREATE TABLE IF NOT EXISTS visits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  visitor_name TEXT NOT NULL,
+  timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+  registered_by INTEGER REFERENCES admins(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_subscriptions_member ON subscriptions(member_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_member ON checkins(member_id);
 CREATE INDEX IF NOT EXISTS idx_members_full_name ON members(full_name);

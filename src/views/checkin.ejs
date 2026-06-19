@@ -10,37 +10,89 @@
   </div>
 <% } %>
 
-<div class="card mb-4">
-  <div class="card-body">
-    <form id="checkinForm" method="POST" action="/checkin">
-      <label class="form-label">Buscar socio por nombre</label>
-      <input type="text" id="memberSearch" class="form-control mb-2" placeholder="Escribe el nombre..." autocomplete="off" autofocus>
-      <input type="hidden" name="member_id" id="memberId">
-      <div id="searchResults" class="list-group mb-3"></div>
-      <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Registrar entrada</button>
-    </form>
+<% if (visitResult) { %>
+  <div class="alert <%= visitResult.ok ? 'alert-success' : 'alert-warning' %> text-center py-3">
+    <h2 class="mb-0">
+      <% if (visitResult.ok) { %>✅ Visita registrada — <%= visitResult.name %><% } else { %><%= visitResult.message %><% } %>
+    </h2>
+  </div>
+<% } %>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-7">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Socio registrado</div>
+      <div class="card-body">
+        <form id="checkinForm" method="POST" action="/checkin">
+          <label class="form-label">Buscar socio por nombre</label>
+          <input type="text" id="memberSearch" class="form-control mb-2" placeholder="Escribe el nombre..." autocomplete="off" autofocus>
+          <input type="hidden" name="member_id" id="memberId">
+          <div id="searchResults" class="list-group mb-3"></div>
+          <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Registrar entrada</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Visita de día</div>
+      <div class="card-body">
+        <form method="POST" action="/checkin/visita">
+          <label class="form-label">Nombre del visitante</label>
+          <input type="text" name="visitor_name" class="form-control mb-3" placeholder="Nombre completo..." autocomplete="off">
+          <button type="submit" class="btn btn-warning w-100">Visita</button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="card">
-  <div class="card-header">Últimos check-ins</div>
-  <div class="card-body p-0">
-    <table class="table mb-0">
-      <thead><tr><th>Hora</th><th>Socio</th><th>Resultado</th><th>Motivo</th></tr></thead>
-      <tbody>
-        <% recent.forEach(c => { %>
-          <tr>
-            <td><%= c.timestamp %></td>
-            <td><%= c.full_name %></td>
-            <td><span class="badge <%= c.result === 'allowed' ? 'bg-success' : 'bg-danger' %>"><%= c.result === 'allowed' ? 'Permitido' : 'Denegado' %></span></td>
-            <td><%= c.reason || '—' %></td>
-          </tr>
-        <% }) %>
-        <% if (recent.length === 0) { %>
-          <tr><td colspan="4" class="text-muted text-center">Sin check-ins todavía.</td></tr>
-        <% } %>
-      </tbody>
-    </table>
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header">Últimos check-ins</div>
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead><tr><th>Hora</th><th>Socio</th><th>Resultado</th><th>Motivo</th></tr></thead>
+          <tbody>
+            <% recent.forEach(c => { %>
+              <tr>
+                <td><%= c.timestamp %></td>
+                <td><%= c.full_name %></td>
+                <td><span class="badge <%= c.result === 'allowed' ? 'bg-success' : 'bg-danger' %>"><%= c.result === 'allowed' ? 'Permitido' : 'Denegado' %></span></td>
+                <td><%= c.reason || '—' %></td>
+              </tr>
+            <% }) %>
+            <% if (recent.length === 0) { %>
+              <tr><td colspan="4" class="text-muted text-center">Sin check-ins todavía.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header">Últimas visitas del día</div>
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead><tr><th>Hora</th><th>Visitante</th></tr></thead>
+          <tbody>
+            <% recentVisits.forEach(v => { %>
+              <tr>
+                <td><%= v.timestamp %></td>
+                <td><%= v.visitor_name %></td>
+              </tr>
+            <% }) %>
+            <% if (recentVisits.length === 0) { %>
+              <tr><td colspan="2" class="text-muted text-center">Sin visitas todavía.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
