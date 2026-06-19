@@ -1,0 +1,383 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="mb-0">Estadísticas</h1>
+  <button id="downloadPdf" class="btn btn-warning">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-1 mb-1" viewBox="0 0 16 16">
+      <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+      <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+    </svg>
+    Descargar PDF
+  </button>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-primary"><%= kpis.activeMembers %></div>
+        <div class="text-muted small">Socios activos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-success">$<%= kpis.monthlyRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0 }) %></div>
+        <div class="text-muted small">Ingresos este mes</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-warning"><%= kpis.monthlyCheckins %></div>
+        <div class="text-muted small">Check-ins este mes</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-info"><%= kpis.monthlyVisits %></div>
+        <div class="text-muted small">Visitas del día este mes</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ingresos y estado de socios -->
+<div class="row g-3 mb-4">
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent fw-semibold">Ingresos mensuales (últimos 12 meses)</div>
+      <div class="card-body">
+        <canvas id="revenueChart" height="100"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent fw-semibold">Estado de socios</div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Check-ins por día -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent fw-semibold">Check-ins por día (últimos 30 días)</div>
+      <div class="card-body">
+        <canvas id="checkinsChart" height="70"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Nuevos socios y visitas por mes -->
+<div class="row g-3 mb-4">
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent fw-semibold">Nuevos socios vs visitas del día (últimos 12 meses)</div>
+      <div class="card-body">
+        <canvas id="membersVisitsChart" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="row g-3 h-100">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-transparent fw-semibold">Distribución por plan</div>
+          <div class="card-body d-flex align-items-center justify-content-center">
+            <canvas id="planChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-transparent fw-semibold">Método de pago</div>
+          <div class="card-body d-flex align-items-center justify-content-center">
+            <canvas id="paymentChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Total acumulado -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body text-center py-4">
+    <span class="text-muted">Ingresos totales acumulados:&nbsp;</span>
+    <span class="fs-4 fw-bold text-success">$<%= kpis.totalRevenue.toLocaleString('es-MX', { minimumFractionDigits: 2 }) %></span>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script>
+(function () {
+  const MONTH_LABELS = <%- JSON.stringify(charts.monthLabels) %>;
+  const DAY_LABELS   = <%- JSON.stringify(charts.dayLabels) %>;
+  const PALETTE = ['#4361ee','#3a86ff','#56cfe1','#72efdd','#80b918','#f4a261','#e76f51','#e9c46a','#2a9d8f','#264653','#8338ec','#ff006e'];
+
+  // Guardar referencias para usarlas en el PDF
+  window._charts = {};
+
+  window._charts.revenue = new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: {
+      labels: MONTH_LABELS,
+      datasets: [{ label: 'Ingresos ($)', data: <%- JSON.stringify(charts.revenueData) %>, backgroundColor: '#4361ee', borderRadius: 6 }]
+    },
+    options: {
+      animation: { duration: 0 },
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => '$' + v.toLocaleString('es-MX') } } }
+    }
+  });
+
+  window._charts.status = new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: <%- JSON.stringify(charts.statusLabels) %>,
+      datasets: [{ data: <%- JSON.stringify(charts.statusData) %>, backgroundColor: ['#2a9d8f','#e76f51','#adb5bd'], borderWidth: 2 }]
+    },
+    options: { animation: { duration: 0 }, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+  });
+
+  window._charts.checkins = new Chart(document.getElementById('checkinsChart'), {
+    type: 'line',
+    data: {
+      labels: DAY_LABELS,
+      datasets: [{ label: 'Check-ins', data: <%- JSON.stringify(charts.checkinsData) %>, borderColor: '#f4a261', backgroundColor: 'rgba(244,162,97,0.15)', fill: true, tension: 0.4, pointRadius: 3 }]
+    },
+    options: { animation: { duration: 0 }, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  window._charts.membersVisits = new Chart(document.getElementById('membersVisitsChart'), {
+    type: 'line',
+    data: {
+      labels: MONTH_LABELS,
+      datasets: [
+        { label: 'Nuevos socios', data: <%- JSON.stringify(charts.newMembersData) %>, borderColor: '#4361ee', backgroundColor: 'rgba(67,97,238,0.1)', fill: true, tension: 0.4, pointRadius: 4 },
+        { label: 'Visitas del día', data: <%- JSON.stringify(charts.visitsMonthData) %>, borderColor: '#56cfe1', backgroundColor: 'rgba(86,207,225,0.1)', fill: true, tension: 0.4, pointRadius: 4 }
+      ]
+    },
+    options: { animation: { duration: 0 }, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  window._charts.plan = new Chart(document.getElementById('planChart'), {
+    type: 'doughnut',
+    data: {
+      labels: <%- JSON.stringify(charts.planLabels) %>,
+      datasets: [{ data: <%- JSON.stringify(charts.planData) %>, backgroundColor: PALETTE, borderWidth: 2 }]
+    },
+    options: { animation: { duration: 0 }, plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+  });
+
+  window._charts.payment = new Chart(document.getElementById('paymentChart'), {
+    type: 'doughnut',
+    data: {
+      labels: <%- JSON.stringify(charts.paymentLabels) %>,
+      datasets: [{ data: <%- JSON.stringify(charts.paymentData) %>, backgroundColor: ['#80b918','#8338ec','#ff006e','#ffbe0b','#3a86ff'], borderWidth: 2 }]
+    },
+    options: { animation: { duration: 0 }, plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+  });
+})();
+
+document.getElementById('downloadPdf').addEventListener('click', async function () {
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Generando PDF...';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const PW = pdf.internal.pageSize.getWidth();   // 210 mm
+    const PH = pdf.internal.pageSize.getHeight();  // 297 mm
+    const MARGIN = 12;
+    const CONTENT_W = PW - MARGIN * 2;
+    const fecha = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+    const fechaArchivo = new Date().toISOString().slice(0, 10);
+
+    // ---------- Función helper: agrega encabezado en cada página ----------
+    function addHeader(pdf) {
+      // Fondo negro del header
+      pdf.setFillColor(15, 15, 15);
+      pdf.rect(0, 0, PW, 28, 'F');
+
+      // Logo (si existe)
+      const logo = document.getElementById('_pdfLogo');
+      if (logo && logo.complete && logo.naturalWidth > 0) {
+        pdf.addImage(logo, 'PNG', MARGIN, 3, 22, 22);
+      }
+
+      // Nombre del gimnasio
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(13);
+      pdf.text('Panther Zone Gym', MARGIN + 25, 12);
+
+      // Dirección
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(180, 180, 180);
+      pdf.text('Gilberto Figueroa 503, Col. San Mateo, 62665 Puente de Ixtla, Mor.', MARGIN + 25, 18);
+
+      // Fecha del reporte (izquierda)
+      pdf.setFontSize(7);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Reporte generado: ${fecha}`, MARGIN + 25, 23);
+
+      // Línea roja decorativa (como el logo)
+      pdf.setDrawColor(220, 30, 30);
+      pdf.setLineWidth(0.8);
+      pdf.line(0, 28, PW, 28);
+
+      // Resetear color de texto
+      pdf.setTextColor(30, 30, 30);
+    }
+
+    // ---------- Función helper: dibuja título de sección ----------
+    function sectionTitle(pdf, text, y) {
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(text, MARGIN, y);
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.3);
+      pdf.line(MARGIN, y + 1, PW - MARGIN, y + 1);
+      pdf.setTextColor(30, 30, 30);
+    }
+
+    // ---------- Función helper: extrae imagen de un chart con tamaño fijo ----------
+    function chartImg(key, w, h) {
+      const c = window._charts[key];
+      // Forzar render en canvas offscreen para mejor resolución
+      const offscreen = document.createElement('canvas');
+      offscreen.width  = w * 4;
+      offscreen.height = h * 4;
+      const ctx = offscreen.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+      // Dibujar el canvas del chart escalado
+      ctx.drawImage(c.canvas, 0, 0, offscreen.width, offscreen.height);
+      return offscreen.toDataURL('image/png');
+    }
+
+    // ==================== PÁGINA 1 ====================
+    addHeader(pdf);
+    let y = 34;
+
+    // KPIs como texto
+    sectionTitle(pdf, 'Resumen del período', y);
+    y += 6;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+
+    const kpis = [
+      ['Socios activos', '<%= kpis.activeMembers %>'],
+      ['Ingresos este mes', '$<%= kpis.monthlyRevenue.toLocaleString("es-MX", { minimumFractionDigits: 2 }) %>'],
+      ['Check-ins este mes', '<%= kpis.monthlyCheckins %>'],
+      ['Visitas del día este mes', '<%= kpis.monthlyVisits %>'],
+      ['Ingresos totales acumulados', '$<%= kpis.totalRevenue.toLocaleString("es-MX", { minimumFractionDigits: 2 }) %>'],
+    ];
+
+    const kpiColW = CONTENT_W / kpis.length;
+    kpis.forEach(([label, value], i) => {
+      const x = MARGIN + i * kpiColW;
+      pdf.setFillColor(245, 245, 245);
+      pdf.roundedRect(x, y, kpiColW - 2, 14, 2, 2, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.setTextColor(30, 100, 200);
+      pdf.text(String(value), x + (kpiColW - 2) / 2, y + 7, { align: 'center' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(label, x + (kpiColW - 2) / 2, y + 12, { align: 'center' });
+    });
+    pdf.setTextColor(30, 30, 30);
+    y += 20;
+
+    // Gráfica de ingresos (ancho completo)
+    sectionTitle(pdf, 'Ingresos mensuales (últimos 12 meses)', y);
+    y += 4;
+    const revenueH = 60;
+    pdf.addImage(chartImg('revenue', 600, 200), 'PNG', MARGIN, y, CONTENT_W, revenueH);
+    y += revenueH + 6;
+
+    // Check-ins por día
+    sectionTitle(pdf, 'Check-ins por día (últimos 30 días)', y);
+    y += 4;
+    const checkinsH = 55;
+    pdf.addImage(chartImg('checkins', 600, 180), 'PNG', MARGIN, y, CONTENT_W, checkinsH);
+    y += checkinsH + 6;
+
+    // Nuevos socios vs visitas
+    sectionTitle(pdf, 'Nuevos socios vs visitas del día (últimos 12 meses)', y);
+    y += 4;
+    const mvH = 55;
+    pdf.addImage(chartImg('membersVisits', 600, 180), 'PNG', MARGIN, y, CONTENT_W, mvH);
+
+    // ==================== PÁGINA 2 ====================
+    pdf.addPage();
+    addHeader(pdf);
+    y = 34;
+
+    // Donas 2 por fila
+    sectionTitle(pdf, 'Análisis de socios y pagos', y);
+    y += 6;
+
+    // Las donas deben ser cuadradas para no deformarse
+    const donutW = (CONTENT_W - 6) / 2;
+    const donutH = donutW; // cuadrado exacto
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.setTextColor(80, 80, 80);
+
+    // Fila 1: Estado de socios | Distribución por plan
+    pdf.text('Estado de socios',      MARGIN + donutW / 2,         y, { align: 'center' });
+    pdf.text('Distribución por plan', MARGIN + donutW + 6 + donutW / 2, y, { align: 'center' });
+    y += 3;
+    pdf.addImage(chartImg('status', 400, 400), 'PNG', MARGIN,              y, donutW, donutH);
+    pdf.addImage(chartImg('plan',   400, 400), 'PNG', MARGIN + donutW + 6, y, donutW, donutH);
+    y += donutH + 8;
+
+    // Fila 2: Método de pago | vacío
+    pdf.text('Método de pago', MARGIN + donutW / 2, y, { align: 'center' });
+    y += 3;
+    pdf.addImage(chartImg('payment', 400, 400), 'PNG', MARGIN, y, donutW, donutH);
+
+    // Pie de página
+    pdf.setFont('helvetica', 'italic');
+    pdf.setFontSize(7);
+    pdf.setTextColor(160, 160, 160);
+    pdf.text('Panther Zone Gym — Sistema de gestión interno', PW / 2, PH - 8, { align: 'center' });
+
+    // Número de página en ambas páginas
+    const totalPages = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(160, 160, 160);
+      pdf.text(`Página ${i} de ${totalPages}`, PW - MARGIN, PH - 8, { align: 'right' });
+    }
+
+    pdf.save(`estadisticas-panther-${fechaArchivo}.pdf`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-1 mb-1" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg> Descargar PDF`;
+  }
+});
+</script>
+
+<!-- Logo oculto precargado para el PDF -->
+<img id="_pdfLogo" src="/img/logo.png" style="display:none" crossorigin="anonymous">

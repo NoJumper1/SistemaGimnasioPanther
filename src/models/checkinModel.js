@@ -28,4 +28,10 @@ function getByMember(memberId, limit = 20) {
     .all(memberId, limit);
 }
 
-module.exports = { create, getRecent, getByMember };
+function countToday() {
+  return db
+    .prepare(`SELECT COUNT(*) as count FROM checkins WHERE date(timestamp) = date('now')`)
+    .get().count;
+}
+
+module.exports = { create, getRecent, getByMember, countToday };

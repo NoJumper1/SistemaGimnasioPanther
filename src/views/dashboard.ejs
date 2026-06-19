@@ -1,35 +1,43 @@
 <h1 class="mb-4">Dashboard</h1>
 
 <div class="row g-3 mb-4">
-  <div class="col-md-3">
-    <div class="card text-bg-success">
+  <div class="col-6 col-md">
+    <div class="card text-bg-success h-100">
       <div class="card-body">
-        <h6 class="card-title">Activos</h6>
+        <h6 class="card-title">Vigentes</h6>
         <p class="card-text fs-2 mb-0"><%= counts.activo %></p>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card text-bg-danger">
+  <div class="col-6 col-md">
+    <div class="card text-bg-danger h-100">
       <div class="card-body">
-        <h6 class="card-title">Caducados</h6>
+        <h6 class="card-title">Vencidos</h6>
         <p class="card-text fs-2 mb-0"><%= counts.caducado %></p>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card text-bg-secondary">
-      <div class="card-body">
-        <h6 class="card-title">Sin suscripción</h6>
-        <p class="card-text fs-2 mb-0"><%= counts.sin_suscripcion %></p>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card text-bg-light">
+  <div class="col-6 col-md">
+    <div class="card text-bg-light h-100">
       <div class="card-body">
         <h6 class="card-title">Total de socios</h6>
         <p class="card-text fs-2 mb-0"><%= totalMembers %></p>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="card text-bg-warning h-100">
+      <div class="card-body">
+        <h6 class="card-title">Check-ins hoy</h6>
+        <p class="card-text fs-2 mb-0"><%= checkinsToday %></p>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="card text-bg-info h-100">
+      <div class="card-body">
+        <h6 class="card-title">Visitas hoy</h6>
+        <p class="card-text fs-2 mb-0"><%= visitsToday %></p>
       </div>
     </div>
   </div>

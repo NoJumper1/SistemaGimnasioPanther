@@ -13,4 +13,10 @@ function getRecent(limit = 20) {
     .all(limit);
 }
 
-module.exports = { create, getRecent };
+function countToday() {
+  return db
+    .prepare(`SELECT COUNT(*) as count FROM visits WHERE date(timestamp) = date('now')`)
+    .get().count;
+}
+
+module.exports = { create, getRecent, countToday };

@@ -2,6 +2,8 @@ const express = require('express');
 const dayjs = require('dayjs');
 const memberModel = require('../models/memberModel');
 const subscriptionModel = require('../models/subscriptionModel');
+const checkinModel = require('../models/checkinModel');
+const visitModel = require('../models/visitModel');
 const { getMemberStatus, STATUS_LABELS, STATUS_BADGE_CLASSES } = require('../models/memberStatus');
 
 const router = express.Router();
@@ -33,6 +35,8 @@ router.get('/', (req, res) => {
     counts,
     expiringSoon,
     totalMembers: members.length,
+    checkinsToday: checkinModel.countToday(),
+    visitsToday: visitModel.countToday(),
     STATUS_LABELS,
     STATUS_BADGE_CLASSES,
   });
