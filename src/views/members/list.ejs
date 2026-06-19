@@ -1,0 +1,47 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Socios</h1>
+  <a href="/members/new" class="btn btn-primary">+ Nuevo socio</a>
+</div>
+
+<form class="row g-2 mb-4" method="GET">
+  <div class="col-md-5">
+    <input type="text" name="search" value="<%= search %>" class="form-control" placeholder="Buscar por nombre...">
+  </div>
+  <div class="col-md-4">
+    <select name="status" class="form-select">
+      <option value="" <%= statusFilter === '' ? 'selected' : '' %>>Todos los estados</option>
+      <option value="activo" <%= statusFilter === 'activo' ? 'selected' : '' %>>Activo</option>
+      <option value="caducado" <%= statusFilter === 'caducado' ? 'selected' : '' %>>Caducado</option>
+      <option value="sin_suscripcion" <%= statusFilter === 'sin_suscripcion' ? 'selected' : '' %>>Sin suscripción</option>
+    </select>
+  </div>
+  <div class="col-md-3">
+    <button type="submit" class="btn btn-outline-secondary w-100">Filtrar</button>
+  </div>
+</form>
+
+<table class="table table-hover align-middle">
+  <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>Estado</th>
+      <th>Vence</th>
+      <th>Activo</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% rows.forEach(({ member, status, endDate }) => { %>
+      <tr>
+        <td><%= member.full_name %></td>
+        <td><span class="badge <%= STATUS_BADGE_CLASSES[status] %>"><%= STATUS_LABELS[status] %></span></td>
+        <td><%= endDate || '—' %></td>
+        <td><%= member.active ? 'Sí' : 'No (baja)' %></td>
+        <td><a href="/members/<%= member.id %>" class="btn btn-sm btn-outline-primary">Ver</a></td>
+      </tr>
+    <% }) %>
+    <% if (rows.length === 0) { %>
+      <tr><td colspan="5" class="text-muted text-center">No se encontraron socios.</td></tr>
+    <% } %>
+  </tbody>
+</table>

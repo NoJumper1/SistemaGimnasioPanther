@@ -1,0 +1,47 @@
+<h1 class="mb-4">Check-in</h1>
+
+<% if (result) { %>
+  <div class="alert <%= result.ok ? 'alert-success' : 'alert-danger' %> text-center py-4">
+    <h2 class="mb-0">
+      <% if (result.memberName) { %><%= result.memberName %> — <% } %>
+      <%= result.ok ? '✅ PUEDE ENTRAR' : '⛔ ACCESO DENEGADO' %>
+    </h2>
+    <% if (!result.ok && result.message) { %><p class="mb-0 mt-2"><%= result.message %></p><% } %>
+  </div>
+<% } %>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <form id="checkinForm" method="POST" action="/checkin">
+      <label class="form-label">Buscar socio por nombre</label>
+      <input type="text" id="memberSearch" class="form-control mb-2" placeholder="Escribe el nombre..." autocomplete="off" autofocus>
+      <input type="hidden" name="member_id" id="memberId">
+      <div id="searchResults" class="list-group mb-3"></div>
+      <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Registrar entrada</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Últimos check-ins</div>
+  <div class="card-body p-0">
+    <table class="table mb-0">
+      <thead><tr><th>Hora</th><th>Socio</th><th>Resultado</th><th>Motivo</th></tr></thead>
+      <tbody>
+        <% recent.forEach(c => { %>
+          <tr>
+            <td><%= c.timestamp %></td>
+            <td><%= c.full_name %></td>
+            <td><span class="badge <%= c.result === 'allowed' ? 'bg-success' : 'bg-danger' %>"><%= c.result === 'allowed' ? 'Permitido' : 'Denegado' %></span></td>
+            <td><%= c.reason || '—' %></td>
+          </tr>
+        <% }) %>
+        <% if (recent.length === 0) { %>
+          <tr><td colspan="4" class="text-muted text-center">Sin check-ins todavía.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="/js/checkin.js"></script>

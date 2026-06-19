@@ -1,0 +1,61 @@
+<h1 class="mb-4">Dashboard</h1>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card text-bg-success">
+      <div class="card-body">
+        <h6 class="card-title">Activos</h6>
+        <p class="card-text fs-2 mb-0"><%= counts.activo %></p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-danger">
+      <div class="card-body">
+        <h6 class="card-title">Caducados</h6>
+        <p class="card-text fs-2 mb-0"><%= counts.caducado %></p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-secondary">
+      <div class="card-body">
+        <h6 class="card-title">Sin suscripción</h6>
+        <p class="card-text fs-2 mb-0"><%= counts.sin_suscripcion %></p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-light">
+      <div class="card-body">
+        <h6 class="card-title">Total de socios</h6>
+        <p class="card-text fs-2 mb-0"><%= totalMembers %></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Próximos a vencer (7 días)</div>
+  <div class="card-body">
+    <% if (expiringSoon.length === 0) { %>
+      <p class="text-muted mb-0">No hay socios por vencer en los próximos 7 días.</p>
+    <% } else { %>
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr><th>Socio</th><th>Vence</th><th>Días restantes</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% expiringSoon.forEach(item => { %>
+            <tr>
+              <td><%= item.member.full_name %></td>
+              <td><%= item.endDate %></td>
+              <td><%= item.daysLeft %></td>
+              <td><a href="/members/<%= item.member.id %>" class="btn btn-sm btn-outline-primary">Ver</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>
