@@ -1,64 +1,102 @@
-<h1 class="mb-4">Dashboard</h1>
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <a href="/screensaver" class="btn btn-success btn-sm" style="display:flex;align-items:center;gap:6px">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2a5 5 0 1 0 5 5M12 2a5 5 0 0 0-5 5M12 7v5M7 12c-2.5 1-4 3-4 5h18c0-2-1.5-4-4-5"/>
+      <path d="M9 17c1 2.5 1 4 3 4s2-1.5 3-4"/>
+    </svg>
+    Modo Acceso
+  </a>
+</div>
+
+<script>
+(function () {
+  var IDLE_MS = 7000;
+  var timer;
+  function reset() {
+    clearTimeout(timer);
+    timer = setTimeout(function () { window.location.href = '/screensaver'; }, IDLE_MS);
+  }
+  ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(function (ev) {
+    document.addEventListener(ev, reset, { passive: true });
+  });
+  reset();
+})();
+</script>
 
 <div class="row g-3 mb-4">
   <div class="col-6 col-md">
-    <div class="card text-bg-success h-100">
-      <div class="card-body">
-        <h6 class="card-title">Vigentes</h6>
-        <p class="card-text fs-2 mb-0"><%= counts.activo %></p>
+    <div class="card kpi-card kpi-success h-100">
+      <div class="card-body py-3 px-4">
+        <span class="kpi-icon">✓</span>
+        <div class="kpi-value" style="color:var(--success)"><%= counts.activo %></div>
+        <div class="kpi-label">Vigentes</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md">
-    <div class="card text-bg-danger h-100">
-      <div class="card-body">
-        <h6 class="card-title">Vencidos</h6>
-        <p class="card-text fs-2 mb-0"><%= counts.caducado %></p>
+    <div class="card kpi-card kpi-danger h-100">
+      <div class="card-body py-3 px-4">
+        <span class="kpi-icon">✕</span>
+        <div class="kpi-value" style="color:var(--danger)"><%= counts.caducado %></div>
+        <div class="kpi-label">Vencidos</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md">
-    <div class="card text-bg-light h-100">
-      <div class="card-body">
-        <h6 class="card-title">Total de socios</h6>
-        <p class="card-text fs-2 mb-0"><%= totalMembers %></p>
+    <div class="card kpi-card kpi-light h-100">
+      <div class="card-body py-3 px-4">
+        <span class="kpi-icon">◉</span>
+        <div class="kpi-value" style="color:var(--text)"><%= totalMembers %></div>
+        <div class="kpi-label">Total socios</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md">
-    <div class="card text-bg-warning h-100">
-      <div class="card-body">
-        <h6 class="card-title">Check-ins hoy</h6>
-        <p class="card-text fs-2 mb-0"><%= checkinsToday %></p>
+    <div class="card kpi-card kpi-warning h-100">
+      <div class="card-body py-3 px-4">
+        <span class="kpi-icon">⚡</span>
+        <div class="kpi-value" style="color:var(--warning)"><%= checkinsToday %></div>
+        <div class="kpi-label">Check-ins hoy</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md">
-    <div class="card text-bg-info h-100">
-      <div class="card-body">
-        <h6 class="card-title">Visitas hoy</h6>
-        <p class="card-text fs-2 mb-0"><%= visitsToday %></p>
+    <div class="card kpi-card kpi-info h-100">
+      <div class="card-body py-3 px-4">
+        <span class="kpi-icon">👁</span>
+        <div class="kpi-value" style="color:var(--info)"><%= visitsToday %></div>
+        <div class="kpi-label">Visitas hoy</div>
       </div>
     </div>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-header">Próximos a vencer (7 días)</div>
-  <div class="card-body">
+  <div class="card-header">Próximos a vencer <span style="color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0">(7 días)</span></div>
+  <div class="card-body p-0">
     <% if (expiringSoon.length === 0) { %>
-      <p class="text-muted mb-0">No hay socios por vencer en los próximos 7 días.</p>
+      <p class="text-muted mb-0 p-4" style="font-size:0.875rem">No hay socios por vencer en los próximos 7 días.</p>
     <% } else { %>
-      <table class="table table-sm align-middle">
+      <table class="table table-sm align-middle mb-0">
         <thead>
-          <tr><th>Socio</th><th>Vence</th><th>Días restantes</th><th></th></tr>
+          <tr>
+            <th>Socio</th>
+            <th>Vence</th>
+            <th>Días restantes</th>
+            <th></th>
+          </tr>
         </thead>
         <tbody>
           <% expiringSoon.forEach(item => { %>
             <tr>
               <td><%= item.member.full_name %></td>
               <td><%= item.endDate %></td>
-              <td><%= item.daysLeft %></td>
+              <td>
+                <span class="badge <%= item.daysLeft <= 2 ? 'bg-danger' : 'bg-warning' %>">
+                  <%= item.daysLeft %> días
+                </span>
+              </td>
               <td><a href="/members/<%= item.member.id %>" class="btn btn-sm btn-outline-primary">Ver</a></td>
             </tr>
           <% }) %>

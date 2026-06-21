@@ -36,6 +36,12 @@ npm run dev      # desarrollo, con recarga automática
 npm start        # producción
 ```
 
+## En caso de que el puerto este ocupado y marque error
+```
+Stop-Process -Id (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue).OwningProcess -Force -ErrorAction SilentlyContinue
+
+```
+
 La app queda disponible en `http://localhost:3000`.
 
 Al iniciar por primera vez se crea automáticamente:

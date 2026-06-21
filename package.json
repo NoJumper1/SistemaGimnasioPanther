@@ -17,9 +17,11 @@
     "ejs": "^3.1.10",
     "express": "^4.21.1",
     "express-ejs-layouts": "^2.5.1",
-    "express-session": "^1.18.1"
+    "express-session": "^1.18.1",
+    "multer": "^2.2.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.7",
+    "puppeteer": "^25.1.0"
   }
 }

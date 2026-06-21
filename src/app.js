@@ -11,6 +11,7 @@ const subscriptionsRoutes = require('./routes/subscriptions');
 const plansRoutes = require('./routes/plans');
 const checkinRoutes = require('./routes/checkin');
 const statsRoutes = require('./routes/stats');
+const screensaverRoutes = require('./routes/screensaver');
 
 const app = express();
 
@@ -44,5 +45,6 @@ app.use('/members/:memberId/subscriptions', subscriptionsRoutes);
 app.use('/plans', plansRoutes);
 app.use('/checkin', checkinRoutes);
 app.use('/stats', statsRoutes);
+app.use('/', screensaverRoutes);
 
 module.exports = app;
