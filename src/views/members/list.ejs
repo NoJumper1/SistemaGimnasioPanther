@@ -10,8 +10,8 @@
   <div class="col-md-4">
     <select name="status" class="form-select">
       <option value="" <%= statusFilter === '' ? 'selected' : '' %>>Todos los estados</option>
-      <option value="activo" <%= statusFilter === 'activo' ? 'selected' : '' %>>Activo</option>
-      <option value="caducado" <%= statusFilter === 'caducado' ? 'selected' : '' %>>Caducado</option>
+      <option value="activo" <%= statusFilter === 'activo' ? 'selected' : '' %>>Vigente</option>
+      <option value="caducado" <%= statusFilter === 'caducado' ? 'selected' : '' %>>Vencida</option>
       <option value="sin_suscripcion" <%= statusFilter === 'sin_suscripcion' ? 'selected' : '' %>>Sin suscripción</option>
     </select>
   </div>

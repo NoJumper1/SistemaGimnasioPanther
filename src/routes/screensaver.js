@@ -1,46 +1,22 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
-const db = require('../db/database');
-const { getMemberStatus } = require('../models/memberStatus');
-const spotify = require('../services/spotify');
+import { Hono } from 'hono';
+import { render } from '../lib/render.js';
+import { getMemberStatus } from '../models/memberStatus.js';
+import * as spotify from '../services/spotify.js';
 
-const router = express.Router();
+const app = new Hono();
+const IMAGE_RE = /\.(jpe?g|png|gif|webp)$/i;
 
-const CAROUSEL_DIR    = path.join(__dirname, '../public/img/carousel');
-const FEATURED_DIR    = path.join(__dirname, '../public/img/featured');
-const IMAGE_RE        = /\.(jpe?g|png|gif|webp)$/i;
-
-for (const dir of [CAROUSEL_DIR, FEATURED_DIR]) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+/* ── Helpers R2 ─────────────────────────────────────────────── */
+async function listR2Images(r2, prefix) {
+  const list = await r2.list({ prefix });
+  return list.objects
+    .map((o) => o.key.replace(prefix, ''))
+    .filter((f) => IMAGE_RE.test(f))
+    .sort();
 }
 
-/* ── Multer: carrusel ─────────────────────────────────────────── */
-const carouselStorage = multer.diskStorage({
-  destination: CAROUSEL_DIR,
-  filename: (_, file, cb) => cb(null, `${Date.now()}${path.extname(file.originalname).toLowerCase()}`)
-});
-const upload = multer({
-  storage: carouselStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('image/'))
-});
-
-/* ── Multer: imagen destacada ─────────────────────────────────── */
-const featuredStorage = multer.diskStorage({
-  destination: FEATURED_DIR,
-  filename: (_, file, cb) => cb(null, `featured${path.extname(file.originalname).toLowerCase()}`)
-});
-const uploadFeatured = multer({
-  storage: featuredStorage,
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('image/'))
-});
-
-/* ── Helper: imagen destacada ─────────────────────────────────── */
-function getFeaturedImage() {
-  const files = fs.readdirSync(FEATURED_DIR).filter(f => IMAGE_RE.test(f));
+async function getFeaturedImage(r2) {
+  const files = await listR2Images(r2, 'featured/');
   return files.length ? `/img/featured/${files[0]}` : null;
 }
 
@@ -48,126 +24,143 @@ function getFeaturedImage() {
    SCREENSAVER
    ═══════════════════════════════════════════════════════════════ */
 
-router.get('/screensaver', (req, res) => {
-  res.render('screensaver', { layout: false });
-});
+app.get('/screensaver', (c) => c.html(render('screensaver', { layout: false })));
 
 /* ── API: demo scan ───────────────────────────────────────────── */
-router.get('/api/screensaver/demo-scan', (req, res) => {
-  if (Math.random() < 0.1) return res.json({ result: 'not_found' });
+app.get('/api/screensaver/demo-scan', async (c) => {
+  if (Math.random() < 0.1) return c.json({ result: 'not_found' });
 
-  const member = db.prepare(
-    'SELECT id, full_name FROM members WHERE active = 1 ORDER BY RANDOM() LIMIT 1'
-  ).get();
+  const member = await c.env.DB
+    .prepare('SELECT id, full_name FROM members WHERE active = 1 ORDER BY RANDOM() LIMIT 1')
+    .first();
 
-  if (!member) return res.json({ result: 'not_found' });
+  if (!member) return c.json({ result: 'not_found' });
 
-  const sub = db.prepare(
-    'SELECT end_date FROM subscriptions WHERE member_id = ? ORDER BY end_date DESC LIMIT 1'
-  ).get(member.id);
+  const sub = await c.env.DB
+    .prepare('SELECT end_date FROM subscriptions WHERE member_id = ? ORDER BY end_date DESC LIMIT 1')
+    .bind(member.id)
+    .first();
 
   const { status } = getMemberStatus(sub);
   const firstName = member.full_name.split(' ')[0];
-  return res.json({ result: status === 'activo' ? 'allowed' : 'expired', firstName });
+  return c.json({ result: status === 'activo' ? 'allowed' : 'expired', firstName });
 });
 
 /* ── API: carrusel ────────────────────────────────────────────── */
-router.get('/api/screensaver/carousel', (req, res) => {
-  const files = fs.readdirSync(CAROUSEL_DIR)
-    .filter(f => IMAGE_RE.test(f))
-    .sort()
-    .map(f => `/img/carousel/${f}`);
-  res.json(files);
+app.get('/api/screensaver/carousel', async (c) => {
+  const files = await listR2Images(c.env.R2, 'carousel/');
+  return c.json(files.map((f) => `/img/carousel/${f}`));
 });
 
-/* ── API: now playing (desde Spotify) ────────────────────────── */
-router.get('/api/screensaver/nowplaying', (req, res) => {
-  const { active, song, artist, albumArt, connected } = spotify.getState();
-  res.json({ active, song, artist, albumArt, connected });
+/* ── API: now playing ─────────────────────────────────────────── */
+app.get('/api/screensaver/nowplaying', async (c) => {
+  const state = await spotify.getNowPlaying(c.env);
+  return c.json(state);
 });
 
 /* ── API: imagen destacada ────────────────────────────────────── */
-router.get('/api/screensaver/featured', (req, res) => {
-  res.json({ url: getFeaturedImage() });
+app.get('/api/screensaver/featured', async (c) => {
+  return c.json({ url: await getFeaturedImage(c.env.R2) });
 });
 
 /* ═══════════════════════════════════════════════════════════════
    SPOTIFY OAUTH
    ═══════════════════════════════════════════════════════════════ */
 
-router.get('/screensaver/spotify/auth', (req, res) => {
-  if (!spotify.isConfigured()) {
-    return res.status(400).send(
-      'Faltan SPOTIFY_CLIENT_ID y SPOTIFY_CLIENT_SECRET en el archivo .env. ' +
-      'Créalos en <a href="https://developer.spotify.com/dashboard">Spotify Dashboard</a>.'
+app.get('/screensaver/spotify/auth', (c) => {
+  if (!spotify.isConfigured(c.env)) {
+    return c.html(
+      'Faltan SPOTIFY_CLIENT_ID y SPOTIFY_CLIENT_SECRET. ' +
+      'Configúralos con <code>wrangler secret put</code>.', 400
     );
   }
-  res.redirect(spotify.getAuthUrl());
+  return c.redirect(spotify.getAuthUrl(c.env));
 });
 
-router.get('/screensaver/spotify/callback', async (req, res) => {
-  const { code, error } = req.query;
-  if (error || !code) return res.redirect('/screensaver/carousel-admin?spotify=cancelled');
+app.get('/screensaver/spotify/callback', async (c) => {
+  const { code, error } = c.req.query();
+  if (error || !code) return c.redirect('/screensaver/carousel-admin?spotify=cancelled');
 
-  const tokens = await spotify.exchangeCode(code);
-  if (!tokens?.access_token) return res.redirect('/screensaver/carousel-admin?spotify=error');
+  const tokens = await spotify.exchangeCode(c.env, code);
+  if (!tokens?.access_token) return c.redirect('/screensaver/carousel-admin?spotify=error');
 
-  spotify.saveTokens(tokens);
-  spotify.start();
-  res.redirect('/screensaver/carousel-admin?spotify=ok');
+  await spotify.saveTokens(c.env, tokens);
+  return c.redirect('/screensaver/carousel-admin?spotify=ok');
 });
 
-router.post('/screensaver/spotify/disconnect', (req, res) => {
-  spotify.stop();
-  spotify.clearTokens();
-  res.redirect('/screensaver/carousel-admin');
+app.post('/screensaver/spotify/disconnect', async (c) => {
+  await spotify.clearTokens(c.env);
+  return c.redirect('/screensaver/carousel-admin');
 });
 
 /* ═══════════════════════════════════════════════════════════════
    ADMIN — CARRUSEL
    ═══════════════════════════════════════════════════════════════ */
 
-router.get('/screensaver/carousel-admin', (req, res) => {
-  const images           = fs.readdirSync(CAROUSEL_DIR).filter(f => IMAGE_RE.test(f));
-  const featured         = getFeaturedImage();
-  const spotifyState     = spotify.getState();
-  const spotifyConfigured = spotify.isConfigured();
-  const spotifyMsg       = req.query.spotify || null;
+app.get('/screensaver/carousel-admin', async (c) => {
+  const [images, featured, spotifyState] = await Promise.all([
+    listR2Images(c.env.R2, 'carousel/'),
+    getFeaturedImage(c.env.R2),
+    spotify.getNowPlaying(c.env),
+  ]);
 
-  res.render('carousel-admin', {
+  return c.html(render('carousel-admin', {
     title: 'Carrusel · Protector de Pantalla',
     images,
     featured,
     spotifyState,
-    spotifyConfigured,
-    spotifyMsg,
-  });
+    spotifyConfigured: spotify.isConfigured(c.env),
+    spotifyMsg: c.req.query('spotify') || null,
+  }));
 });
 
-router.post('/screensaver/carousel/upload', upload.single('photo'), (req, res) => {
-  res.redirect('/screensaver/carousel-admin');
+/* ── Upload carrusel ─────────────────────────────────────────── */
+app.post('/screensaver/carousel/upload', async (c) => {
+  const formData = await c.req.formData();
+  const file = formData.get('photo');
+
+  if (file && file.size > 0 && file.type.startsWith('image/')) {
+    if (file.size > 5 * 1024 * 1024) return c.html('Imagen demasiado grande (máx. 5 MB)', 400);
+    const ext = file.name.split('.').pop().toLowerCase();
+    const key = `carousel/${Date.now()}.${ext}`;
+    await c.env.R2.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
+  }
+
+  return c.redirect('/screensaver/carousel-admin');
 });
 
-router.post('/screensaver/carousel/delete', (req, res) => {
-  const file   = path.basename(req.body.filename || '');
-  const target = path.join(CAROUSEL_DIR, file);
-  if (IMAGE_RE.test(file) && fs.existsSync(target)) fs.unlinkSync(target);
-  res.redirect('/screensaver/carousel-admin');
+/* ── Borrar imagen carrusel ──────────────────────────────────── */
+app.post('/screensaver/carousel/delete', async (c) => {
+  const body = await c.req.parseBody();
+  const filename = (body.filename || '').replace(/[^a-zA-Z0-9._-]/g, '');
+  if (filename && IMAGE_RE.test(filename)) {
+    await c.env.R2.delete(`carousel/${filename}`);
+  }
+  return c.redirect('/screensaver/carousel-admin');
 });
 
-router.post('/screensaver/featured/upload', uploadFeatured.single('featured'), (req, res) => {
-  const existing = fs.readdirSync(FEATURED_DIR).filter(f => IMAGE_RE.test(f));
-  existing.forEach(f => {
-    const p = path.join(FEATURED_DIR, f);
-    if (req.file && path.resolve(req.file.path) !== path.resolve(p)) fs.unlinkSync(p);
-  });
-  res.redirect('/screensaver/carousel-admin');
+/* ── Upload imagen destacada ─────────────────────────────────── */
+app.post('/screensaver/featured/upload', async (c) => {
+  const formData = await c.req.formData();
+  const file = formData.get('featured');
+
+  if (file && file.size > 0 && file.type.startsWith('image/')) {
+    if (file.size > 10 * 1024 * 1024) return c.html('Imagen demasiado grande (máx. 10 MB)', 400);
+    const ext = file.name.split('.').pop().toLowerCase();
+    // Borrar la imagen destacada anterior
+    const existing = await listR2Images(c.env.R2, 'featured/');
+    await Promise.all(existing.map((f) => c.env.R2.delete(`featured/${f}`)));
+    await c.env.R2.put(`featured/featured.${ext}`, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
+  }
+
+  return c.redirect('/screensaver/carousel-admin');
 });
 
-router.post('/screensaver/featured/delete', (req, res) => {
-  fs.readdirSync(FEATURED_DIR).filter(f => IMAGE_RE.test(f))
-    .forEach(f => fs.unlinkSync(path.join(FEATURED_DIR, f)));
-  res.redirect('/screensaver/carousel-admin');
+/* ── Borrar imagen destacada ─────────────────────────────────── */
+app.post('/screensaver/featured/delete', async (c) => {
+  const existing = await listR2Images(c.env.R2, 'featured/');
+  await Promise.all(existing.map((f) => c.env.R2.delete(`featured/${f}`)));
+  return c.redirect('/screensaver/carousel-admin');
 });
 
-module.exports = router;
+export default app;

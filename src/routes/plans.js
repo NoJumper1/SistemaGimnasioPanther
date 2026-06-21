@@ -1,54 +1,53 @@
-const express = require('express');
-const planModel = require('../models/planModel');
+import { Hono } from 'hono';
+import { render } from '../lib/render.js';
+import * as planModel from '../models/planModel.js';
 
-const router = express.Router();
+const app = new Hono();
 
-router.get('/', (req, res) => {
-  const plans = planModel.getAll({ includeInactive: true });
-  res.render('plans/list', { title: 'Planes', plans });
+app.get('/', async (c) => {
+  const plans = await planModel.getAll(c.env.DB, { includeInactive: true });
+  return c.html(render('plans/list', { title: 'Planes', plans }));
 });
 
-router.get('/new', (req, res) => {
-  res.render('plans/form', { title: 'Nuevo plan', plan: null });
-});
+app.get('/new', (c) => c.html(render('plans/form', { title: 'Nuevo plan', plan: null })));
 
-router.post('/', (req, res) => {
-  const { name, duration_days, price } = req.body;
+app.post('/', async (c) => {
+  const body = await c.req.parseBody();
+  const { name, duration_days, price } = body;
+
   if (!name || !duration_days) {
-    return res.status(400).render('plans/form', {
-      title: 'Nuevo plan',
-      plan: null,
-      error: 'Nombre y duración son obligatorios.',
-    });
+    return c.html(render('plans/form', { title: 'Nuevo plan', plan: null, error: 'Nombre y duración son obligatorios.' }), 400);
   }
-  planModel.create({
+
+  await planModel.create(c.env.DB, {
     name: name.trim(),
     durationDays: parseInt(duration_days, 10),
     price: parseFloat(price) || 0,
   });
-  res.redirect('/plans');
+  return c.redirect('/plans');
 });
 
-router.get('/:id/edit', (req, res) => {
-  const plan = planModel.getById(req.params.id);
-  if (!plan) return res.status(404).send('Plan no encontrado');
-  res.render('plans/form', { title: 'Editar plan', plan });
+app.get('/:id/edit', async (c) => {
+  const plan = await planModel.getById(c.env.DB, c.req.param('id'));
+  if (!plan) return c.html('Plan no encontrado', 404);
+  return c.html(render('plans/form', { title: 'Editar plan', plan }));
 });
 
-router.post('/:id', (req, res) => {
-  const { name, duration_days, price, active } = req.body;
-  planModel.update(req.params.id, {
+app.post('/:id/edit', async (c) => {
+  const body = await c.req.parseBody();
+  const { name, duration_days, price, active } = body;
+  await planModel.update(c.env.DB, c.req.param('id'), {
     name: name.trim(),
     durationDays: parseInt(duration_days, 10),
     price: parseFloat(price) || 0,
     active: active === 'on',
   });
-  res.redirect('/plans');
+  return c.redirect('/plans');
 });
 
-router.post('/:id/delete', (req, res) => {
-  planModel.remove(req.params.id);
-  res.redirect('/plans');
+app.post('/:id/delete', async (c) => {
+  await planModel.remove(c.env.DB, c.req.param('id'));
+  return c.redirect('/plans');
 });
 
-module.exports = router;
+export default app;

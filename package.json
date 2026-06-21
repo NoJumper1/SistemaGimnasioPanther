@@ -1,27 +1,27 @@
 {
   "name": "gimnasio",
-  "version": "1.0.0",
-  "description": "Sistema de registro y control de acceso para gimnasio",
-  "main": "src/server.js",
+  "version": "2.0.0",
+  "description": "Sistema de registro y control de acceso para gimnasio — Cloudflare Workers",
+  "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "node --test"
+    "build": "node build.mjs",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "db:init": "wrangler d1 execute gimnasio --file=src/db/schema.sql",
+    "db:seed": "wrangler d1 execute gimnasio --file=src/db/seed.sql",
+    "db:init:local": "wrangler d1 execute gimnasio --local --file=src/db/schema.sql",
+    "db:seed:local": "wrangler d1 execute gimnasio --local --file=src/db/seed.sql"
   },
   "license": "UNLICENSED",
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "better-sqlite3": "^11.3.0",
+    "bcryptjs": "^2.4.3",
     "dayjs": "^1.11.13",
-    "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
-    "express": "^4.21.1",
-    "express-ejs-layouts": "^2.5.1",
-    "express-session": "^1.18.1",
-    "multer": "^2.2.0"
+    "hono": "^4.7.11",
+    "jose": "^5.10.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7",
-    "puppeteer": "^25.1.0"
+    "esbuild": "^0.25.5",
+    "wrangler": "^4.0.0"
   }
 }

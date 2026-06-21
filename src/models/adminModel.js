@@ -1,22 +1,19 @@
-const db = require('../db/database');
-
-function findByUsername(username) {
-  return db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
+export async function findByUsername(db, username) {
+  return db.prepare('SELECT * FROM admins WHERE username = ?').bind(username).first();
 }
 
-function findById(id) {
-  return db.prepare('SELECT * FROM admins WHERE id = ?').get(id);
+export async function findById(db, id) {
+  return db.prepare('SELECT * FROM admins WHERE id = ?').bind(id).first();
 }
 
-function updatePassword(id, passwordHash) {
-  db.prepare('UPDATE admins SET password_hash = ? WHERE id = ?').run(passwordHash, id);
+export async function updatePassword(db, id, passwordHash) {
+  await db.prepare('UPDATE admins SET password_hash = ? WHERE id = ?').bind(passwordHash, id).run();
 }
 
-function create({ username, passwordHash, role = 'admin' }) {
-  const result = db
+export async function create(db, { username, passwordHash, role = 'admin' }) {
+  const { meta } = await db
     .prepare('INSERT INTO admins (username, password_hash, role) VALUES (?, ?, ?)')
-    .run(username, passwordHash, role);
-  return findById(result.lastInsertRowid);
+    .bind(username, passwordHash, role)
+    .run();
+  return findById(db, meta.last_row_id);
 }
-
-module.exports = { findByUsername, findById, updatePassword, create };

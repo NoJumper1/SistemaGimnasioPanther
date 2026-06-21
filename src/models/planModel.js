@@ -1,33 +1,32 @@
-const db = require('../db/database');
-
-function getAll({ includeInactive = false } = {}) {
-  if (includeInactive) {
-    return db.prepare('SELECT * FROM plans ORDER BY duration_days ASC').all();
-  }
-  return db.prepare('SELECT * FROM plans WHERE active = 1 ORDER BY duration_days ASC').all();
+export async function getAll(db, { includeInactive = false } = {}) {
+  const query = includeInactive
+    ? 'SELECT * FROM plans ORDER BY duration_days ASC'
+    : 'SELECT * FROM plans WHERE active = 1 ORDER BY duration_days ASC';
+  const { results } = await db.prepare(query).all();
+  return results;
 }
 
-function getById(id) {
-  return db.prepare('SELECT * FROM plans WHERE id = ?').get(id);
+export async function getById(db, id) {
+  return db.prepare('SELECT * FROM plans WHERE id = ?').bind(id).first();
 }
 
-function create({ name, durationDays, price }) {
-  const result = db
+export async function create(db, { name, durationDays, price }) {
+  const { meta } = await db
     .prepare('INSERT INTO plans (name, duration_days, price, active) VALUES (?, ?, ?, 1)')
-    .run(name, durationDays, price);
-  return getById(result.lastInsertRowid);
+    .bind(name, durationDays, price)
+    .run();
+  return getById(db, meta.last_row_id);
 }
 
-function update(id, { name, durationDays, price, active }) {
-  db.prepare(
-    'UPDATE plans SET name = ?, duration_days = ?, price = ?, active = ? WHERE id = ?'
-  ).run(name, durationDays, price, active ? 1 : 0, id);
-  return getById(id);
+export async function update(db, id, { name, durationDays, price, active }) {
+  await db
+    .prepare('UPDATE plans SET name = ?, duration_days = ?, price = ?, active = ? WHERE id = ?')
+    .bind(name, durationDays, price, active ? 1 : 0, id)
+    .run();
+  return getById(db, id);
 }
 
-function remove(id) {
-  // Baja lógica para no romper el historial de suscripciones que la referencian
-  db.prepare('UPDATE plans SET active = 0 WHERE id = ?').run(id);
+export async function remove(db, id) {
+  // Baja lógica para no romper el historial de suscripciones
+  await db.prepare('UPDATE plans SET active = 0 WHERE id = ?').bind(id).run();
 }
-
-module.exports = { getAll, getById, create, update, remove };

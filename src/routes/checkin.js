@@ -1,69 +1,79 @@
-const express = require('express');
-const dayjs = require('dayjs');
-const memberModel = require('../models/memberModel');
-const subscriptionModel = require('../models/subscriptionModel');
-const checkinModel = require('../models/checkinModel');
-const visitModel = require('../models/visitModel');
-const { getMemberStatus } = require('../models/memberStatus');
+import { Hono } from 'hono';
+import { render } from '../lib/render.js';
+import * as memberModel from '../models/memberModel.js';
+import * as subscriptionModel from '../models/subscriptionModel.js';
+import * as checkinModel from '../models/checkinModel.js';
+import * as visitModel from '../models/visitModel.js';
+import { getMemberStatus } from '../models/memberStatus.js';
 
-const router = express.Router();
+const app = new Hono();
 
-router.get('/', (req, res) => {
-  const recent = checkinModel.getRecent(15);
-  const recentVisits = visitModel.getRecent(15);
-  res.render('checkin', { title: 'Check-in', recent, recentVisits, result: null, visitResult: null });
+app.get('/', async (c) => {
+  const db = c.env.DB;
+  const [recent, recentVisits] = await Promise.all([
+    checkinModel.getRecent(db, 15),
+    visitModel.getRecent(db, 15),
+  ]);
+  return c.html(render('checkin', { title: 'Check-in', recent, recentVisits, result: null, visitResult: null }));
 });
 
-router.post('/visita', (req, res) => {
-  const visitorName = (req.body.visitor_name || '').trim();
+app.post('/visita', async (c) => {
+  const db = c.env.DB;
+  const body = await c.req.parseBody();
+  const visitorName = (body.visitor_name || '').trim();
+
+  const [recent, recentVisits] = await Promise.all([
+    checkinModel.getRecent(db, 15),
+    visitModel.getRecent(db, 15),
+  ]);
+
   if (!visitorName) {
-    const recent = checkinModel.getRecent(15);
-    const recentVisits = visitModel.getRecent(15);
-    return res.render('checkin', {
-      title: 'Check-in',
-      recent,
-      recentVisits,
-      result: null,
+    return c.html(render('checkin', {
+      title: 'Check-in', recent, recentVisits, result: null,
       visitResult: { ok: false, message: 'Ingresa el nombre del visitante.' },
-    });
+    }));
   }
 
-  visitModel.create({ visitorName, registeredBy: req.session.admin.id });
+  await visitModel.create(db, { visitorName, registeredBy: c.get('admin')?.id });
 
-  const recent = checkinModel.getRecent(15);
-  const recentVisits = visitModel.getRecent(15);
-  res.render('checkin', {
-    title: 'Check-in',
-    recent,
-    recentVisits,
-    result: null,
-    visitResult: { ok: true, name: visitorName },
-  });
+  const [recentFresh, recentVisitsFresh] = await Promise.all([
+    checkinModel.getRecent(db, 15),
+    visitModel.getRecent(db, 15),
+  ]);
+
+  return c.html(render('checkin', {
+    title: 'Check-in', recent: recentFresh, recentVisits: recentVisitsFresh,
+    result: null, visitResult: { ok: true, name: visitorName },
+  }));
 });
 
-// Búsqueda en vivo usada por public/js/checkin.js
-router.get('/search', (req, res) => {
-  const term = (req.query.q || '').trim();
-  if (term.length < 2) return res.json([]);
-  const members = memberModel.search(term, 10);
-  res.json(members.map((m) => ({ id: m.id, full_name: m.full_name })));
+// Búsqueda en vivo para public/js/checkin.js
+app.get('/search', async (c) => {
+  const term = (c.req.query('q') || '').trim();
+  if (term.length < 2) return c.json([]);
+  const members = await memberModel.search(c.env.DB, term, 10);
+  return c.json(members.map((m) => ({ id: m.id, full_name: m.full_name })));
 });
 
-router.post('/', (req, res) => {
-  const memberId = req.body.member_id;
-  const member = memberModel.getById(memberId);
+app.post('/', async (c) => {
+  const db = c.env.DB;
+  const body = await c.req.parseBody();
+  const memberId = body.member_id;
+  const member = await memberModel.getById(db, memberId);
+
+  const [recent, recentVisits] = await Promise.all([
+    checkinModel.getRecent(db, 15),
+    visitModel.getRecent(db, 15),
+  ]);
 
   if (!member) {
-    return res.status(404).render('checkin', {
-      title: 'Check-in',
-      recent: checkinModel.getRecent(15),
-      recentVisits: visitModel.getRecent(15),
-      result: { ok: false, message: 'Socio no encontrado.' },
-      visitResult: null,
-    });
+    return c.html(render('checkin', {
+      title: 'Check-in', recent, recentVisits,
+      result: { ok: false, message: 'Socio no encontrado.' }, visitResult: null,
+    }), 404);
   }
 
-  const latest = subscriptionModel.getLatestByMember(member.id);
+  const latest = await subscriptionModel.getLatestByMember(db, member.id);
   const { status, endDate } = getMemberStatus(latest);
 
   let allowed = status === 'activo';
@@ -72,30 +82,35 @@ router.post('/', (req, res) => {
     allowed = false;
     reason = 'El socio está dado de baja.';
   } else if (status === 'caducado') {
-    reason = `Suscripción caducada el ${endDate}.`;
+    reason = `Suscripción vencida el ${endDate}.`;
   } else if (status === 'sin_suscripcion') {
     reason = 'No tiene ninguna suscripción registrada.';
   }
 
-  checkinModel.create({
+  await checkinModel.create(db, {
     memberId: member.id,
     result: allowed ? 'allowed' : 'denied',
     reason,
     method: 'manual',
-    registeredBy: req.session.admin.id,
+    registeredBy: c.get('admin')?.id,
   });
 
-  res.render('checkin', {
+  const [recentFresh, recentVisitsFresh] = await Promise.all([
+    checkinModel.getRecent(db, 15),
+    visitModel.getRecent(db, 15),
+  ]);
+
+  return c.html(render('checkin', {
     title: 'Check-in',
-    recent: checkinModel.getRecent(15),
-    recentVisits: visitModel.getRecent(15),
+    recent: recentFresh,
+    recentVisits: recentVisitsFresh,
     result: {
       ok: allowed,
       memberName: member.full_name,
       message: allowed ? 'Puede entrar' : `Acceso denegado: ${reason}`,
     },
     visitResult: null,
-  });
+  }));
 });
 
-module.exports = router;
+export default app;

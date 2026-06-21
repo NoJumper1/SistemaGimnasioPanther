@@ -1,4 +1,4 @@
-const dayjs = require('dayjs');
+import dayjs from 'dayjs';
 
 /**
  * Calcula el estado de un socio a partir de su suscripción más reciente.
@@ -23,8 +23,8 @@ function getMemberStatus(latestSubscription, today = dayjs().format('YYYY-MM-DD'
 }
 
 const STATUS_LABELS = {
-  activo: 'Activo',
-  caducado: 'Caducado',
+  activo: 'Vigente',
+  caducado: 'Vencida',
   sin_suscripcion: 'Sin suscripción',
 };
 
@@ -34,4 +34,4 @@ const STATUS_BADGE_CLASSES = {
   sin_suscripcion: 'bg-secondary',
 };
 
-module.exports = { getMemberStatus, STATUS_LABELS, STATUS_BADGE_CLASSES };
+export { getMemberStatus, STATUS_LABELS, STATUS_BADGE_CLASSES };

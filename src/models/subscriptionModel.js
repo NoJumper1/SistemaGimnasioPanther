@@ -1,23 +1,24 @@
-const db = require('../db/database');
-
-function getByMember(memberId) {
-  return db
+export async function getByMember(db, memberId) {
+  const { results } = await db
     .prepare('SELECT * FROM subscriptions WHERE member_id = ? ORDER BY end_date DESC, id DESC')
-    .all(memberId);
+    .bind(memberId)
+    .all();
+  return results;
 }
 
-function getLatestByMember(memberId) {
+export async function getLatestByMember(db, memberId) {
   return db
     .prepare('SELECT * FROM subscriptions WHERE member_id = ? ORDER BY end_date DESC, id DESC LIMIT 1')
-    .get(memberId);
+    .bind(memberId)
+    .first();
 }
 
 /**
- * Devuelve un mapa { member_id: latestSubscription } para todos los socios de una sola vez.
- * Evita N+1 queries en listados.
+ * Devuelve Map<member_id, latestSubscription> para todos los socios en una sola query.
+ * Evita N+1 en listados.
  */
-function getLatestForAllMembers() {
-  const rows = db
+export async function getLatestForAllMembers(db) {
+  const { results } = await db
     .prepare(
       `SELECT s.* FROM subscriptions s
        WHERE s.id = (
@@ -30,21 +31,18 @@ function getLatestForAllMembers() {
     .all();
 
   const map = new Map();
-  for (const row of rows) {
-    map.set(row.member_id, row);
-  }
+  for (const row of results) map.set(row.member_id, row);
   return map;
 }
 
-function create({ memberId, planId, startDate, endDate, amount, paymentMethod, paymentDate, registeredBy, notes }) {
-  const result = db
+export async function create(db, { memberId, planId, startDate, endDate, amount, paymentMethod, paymentDate, registeredBy, notes }) {
+  const { meta } = await db
     .prepare(
       `INSERT INTO subscriptions
         (member_id, plan_id, start_date, end_date, amount, payment_method, payment_date, registered_by, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(memberId, planId || null, startDate, endDate, amount, paymentMethod || null, paymentDate, registeredBy || null, notes || null);
-  return db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(result.lastInsertRowid);
+    .bind(memberId, planId || null, startDate, endDate, amount, paymentMethod || null, paymentDate, registeredBy || null, notes || null)
+    .run();
+  return db.prepare('SELECT * FROM subscriptions WHERE id = ?').bind(meta.last_row_id).first();
 }
-
-module.exports = { getByMember, getLatestByMember, getLatestForAllMembers, create };

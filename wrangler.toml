@@ -1,0 +1,33 @@
+name = "panther-zone-gym"
+main = "dist/worker.js"
+compatibility_date = "2025-06-21"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets (CSS, JS, images del directorio public/)
+[assets]
+directory = "./src/public"
+binding = "ASSETS"
+
+# D1 SQLite — ejecutar primero: wrangler d1 create gimnasio
+[[d1_databases]]
+binding = "DB"
+database_name = "gimnasio"
+database_id = ""
+
+# R2 Object Storage (imágenes de carrusel y destacada)
+# Ejecutar: wrangler r2 bucket create panther-gym-assets
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "panther-gym-assets"
+
+# KV Namespace (tokens Spotify + caché)
+# Ejecutar: wrangler kv namespace create gimnasio-kv
+[[kv_namespaces]]
+binding = "KV"
+id = ""
+
+# Secretos — configurar con:
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put SPOTIFY_CLIENT_ID
+#   wrangler secret put SPOTIFY_CLIENT_SECRET
+#   wrangler secret put SPOTIFY_REDIRECT_URI

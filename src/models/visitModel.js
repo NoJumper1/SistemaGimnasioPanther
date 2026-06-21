@@ -1,22 +1,22 @@
-const db = require('../db/database');
-
-function create({ visitorName, registeredBy }) {
-  const result = db
+export async function create(db, { visitorName, registeredBy }) {
+  const { meta } = await db
     .prepare('INSERT INTO visits (visitor_name, registered_by) VALUES (?, ?)')
-    .run(visitorName, registeredBy || null);
-  return db.prepare('SELECT * FROM visits WHERE id = ?').get(result.lastInsertRowid);
+    .bind(visitorName, registeredBy || null)
+    .run();
+  return db.prepare('SELECT * FROM visits WHERE id = ?').bind(meta.last_row_id).first();
 }
 
-function getRecent(limit = 20) {
-  return db
+export async function getRecent(db, limit = 20) {
+  const { results } = await db
     .prepare('SELECT * FROM visits ORDER BY id DESC LIMIT ?')
-    .all(limit);
+    .bind(limit)
+    .all();
+  return results;
 }
 
-function countToday() {
-  return db
+export async function countToday(db) {
+  const row = await db
     .prepare(`SELECT COUNT(*) as count FROM visits WHERE date(timestamp) = date('now')`)
-    .get().count;
+    .first();
+  return row.count;
 }
-
-module.exports = { create, getRecent, countToday };

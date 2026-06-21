@@ -1,16 +1,22 @@
-const express = require('express');
-const dayjs = require('dayjs');
-const memberModel = require('../models/memberModel');
-const subscriptionModel = require('../models/subscriptionModel');
-const checkinModel = require('../models/checkinModel');
-const visitModel = require('../models/visitModel');
-const { getMemberStatus, STATUS_LABELS, STATUS_BADGE_CLASSES } = require('../models/memberStatus');
+import { Hono } from 'hono';
+import dayjs from 'dayjs';
+import { render } from '../lib/render.js';
+import { getAll } from '../models/memberModel.js';
+import { getLatestForAllMembers } from '../models/subscriptionModel.js';
+import { countToday as checkinsToday } from '../models/checkinModel.js';
+import { countToday as visitsToday } from '../models/visitModel.js';
+import { getMemberStatus, STATUS_LABELS, STATUS_BADGE_CLASSES } from '../models/memberStatus.js';
 
-const router = express.Router();
+const app = new Hono();
 
-router.get('/', (req, res) => {
-  const members = memberModel.getAll();
-  const latestByMember = subscriptionModel.getLatestForAllMembers();
+app.get('/', async (c) => {
+  const db = c.env.DB;
+  const [members, latestByMember, checkinsCount, visitsCount] = await Promise.all([
+    getAll(db),
+    getLatestForAllMembers(db),
+    checkinsToday(db),
+    visitsToday(db),
+  ]);
 
   const counts = { activo: 0, caducado: 0, sin_suscripcion: 0 };
   const expiringSoon = [];
@@ -23,23 +29,22 @@ router.get('/', (req, res) => {
 
     if (status === 'activo' && endDate) {
       const daysLeft = dayjs(endDate).diff(today.startOf('day'), 'day');
-      if (daysLeft <= 7) {
-        expiringSoon.push({ member, endDate, daysLeft });
-      }
+      if (daysLeft <= 7) expiringSoon.push({ member, endDate, daysLeft });
     }
   }
 
   expiringSoon.sort((a, b) => a.daysLeft - b.daysLeft);
 
-  res.render('dashboard', {
+  return c.html(render('dashboard', {
+    title: 'Dashboard',
     counts,
     expiringSoon,
     totalMembers: members.length,
-    checkinsToday: checkinModel.countToday(),
-    visitsToday: visitModel.countToday(),
+    checkinsToday: checkinsCount,
+    visitsToday: visitsCount,
     STATUS_LABELS,
     STATUS_BADGE_CLASSES,
-  });
+  }));
 });
 
-module.exports = router;
+export default app;
