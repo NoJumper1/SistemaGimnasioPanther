@@ -24,6 +24,7 @@ app.get('/', async (c) => {
 
   return c.html(render('stats', {
     title: 'Estadísticas',
+    admin: c.get('admin'),
     kpis,
     charts: {
       monthLabels,

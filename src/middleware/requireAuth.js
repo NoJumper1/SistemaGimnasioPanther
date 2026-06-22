@@ -15,6 +15,12 @@ export async function requireAuth(c, next) {
   }
 }
 
+export async function requireAdmin(c, next) {
+  const admin = c.get('admin');
+  if (admin?.role !== 'admin') return c.redirect('/');
+  await next();
+}
+
 export async function signToken(payload, secret) {
   const key = new TextEncoder().encode(secret || 'dev-secret-cambiame');
   return new SignJWT(payload)

@@ -14,7 +14,7 @@ app.get('/', async (c) => {
     checkinModel.getRecent(db, 15),
     visitModel.getRecent(db, 15),
   ]);
-  return c.html(render('checkin', { title: 'Check-in', recent, recentVisits, result: null, visitResult: null }));
+  return c.html(render('checkin', { title: 'Check-in', admin: c.get('admin'), recent, recentVisits, result: null, visitResult: null }));
 });
 
 app.post('/visita', async (c) => {
@@ -29,7 +29,7 @@ app.post('/visita', async (c) => {
 
   if (!visitorName) {
     return c.html(render('checkin', {
-      title: 'Check-in', recent, recentVisits, result: null,
+      title: 'Check-in', admin: c.get('admin'), recent, recentVisits, result: null,
       visitResult: { ok: false, message: 'Ingresa el nombre del visitante.' },
     }));
   }
@@ -42,7 +42,7 @@ app.post('/visita', async (c) => {
   ]);
 
   return c.html(render('checkin', {
-    title: 'Check-in', recent: recentFresh, recentVisits: recentVisitsFresh,
+    title: 'Check-in', admin: c.get('admin'), recent: recentFresh, recentVisits: recentVisitsFresh,
     result: null, visitResult: { ok: true, name: visitorName },
   }));
 });
@@ -68,7 +68,7 @@ app.post('/', async (c) => {
 
   if (!member) {
     return c.html(render('checkin', {
-      title: 'Check-in', recent, recentVisits,
+      title: 'Check-in', admin: c.get('admin'), recent, recentVisits,
       result: { ok: false, message: 'Socio no encontrado.' }, visitResult: null,
     }), 404);
   }
@@ -102,6 +102,7 @@ app.post('/', async (c) => {
 
   return c.html(render('checkin', {
     title: 'Check-in',
+    admin: c.get('admin'),
     recent: recentFresh,
     recentVisits: recentVisitsFresh,
     result: {

@@ -37,6 +37,7 @@ app.get('/', async (c) => {
 
   return c.html(render('dashboard', {
     title: 'Dashboard',
+    admin: c.get('admin'),
     counts,
     expiringSoon,
     totalMembers: members.length,

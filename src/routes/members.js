@@ -28,18 +28,18 @@ app.get('/', async (c) => {
 
   if (statusFilter) rows = rows.filter((row) => row.status === statusFilter);
 
-  return c.html(render('members/list', { title: 'Socios', rows, search, statusFilter, STATUS_LABELS, STATUS_BADGE_CLASSES }));
+  return c.html(render('members/list', { title: 'Socios', admin: c.get('admin'), rows, search, statusFilter, STATUS_LABELS, STATUS_BADGE_CLASSES }));
 });
 
 /* ── Nuevo ───────────────────────────────────────────────────── */
-app.get('/new', (c) => c.html(render('members/form', { title: 'Nuevo socio', member: null })));
+app.get('/new', (c) => c.html(render('members/form', { title: 'Nuevo socio', admin: c.get('admin'), member: null })));
 
 app.post('/', async (c) => {
   const body = await c.req.parseBody();
   const { full_name, email, phone, join_date, notes } = body;
 
   if (!full_name || !full_name.trim()) {
-    return c.html(render('members/form', { title: 'Nuevo socio', member: null, error: 'El nombre completo es obligatorio.' }), 400);
+    return c.html(render('members/form', { title: 'Nuevo socio', admin: c.get('admin'), member: null, error: 'El nombre completo es obligatorio.' }), 400);
   }
 
   const member = await memberModel.create(c.env.DB, {
@@ -65,6 +65,7 @@ app.get('/:id', async (c) => {
 
   return c.html(render('members/detail', {
     title: member.full_name,
+    admin: c.get('admin'),
     member, subscriptions, status, endDate, plans, recentCheckins,
     STATUS_LABELS, STATUS_BADGE_CLASSES,
     today: dayjs().format('YYYY-MM-DD'),
@@ -75,7 +76,7 @@ app.get('/:id', async (c) => {
 app.get('/:id/edit', async (c) => {
   const member = await memberModel.getById(c.env.DB, c.req.param('id'));
   if (!member) return c.html('Socio no encontrado', 404);
-  return c.html(render('members/form', { title: 'Editar socio', member }));
+  return c.html(render('members/form', { title: 'Editar socio', admin: c.get('admin'), member }));
 });
 
 app.post('/:id', async (c) => {
@@ -85,7 +86,7 @@ app.post('/:id', async (c) => {
 
   if (!full_name || !full_name.trim()) {
     const member = await memberModel.getById(c.env.DB, id);
-    return c.html(render('members/form', { title: 'Editar socio', member, error: 'El nombre completo es obligatorio.' }), 400);
+    return c.html(render('members/form', { title: 'Editar socio', admin: c.get('admin'), member, error: 'El nombre completo es obligatorio.' }), 400);
   }
 
   await memberModel.update(c.env.DB, id, { fullName: full_name.trim(), email, phone, notes });

@@ -1,48 +1,54 @@
-import ejs from 'ejs';
-
-// Los templates se importan como strings de texto gracias al loader .ejs=text de esbuild
-import layoutTpl from '../views/layout.ejs';
-import loginTpl from '../views/login.ejs';
-import dashboardTpl from '../views/dashboard.ejs';
-import checkinTpl from '../views/checkin.ejs';
-import statsTpl from '../views/stats.ejs';
-import screensaverTpl from '../views/screensaver.ejs';
-import carouselAdminTpl from '../views/carousel-admin.ejs';
-import membersListTpl from '../views/members/list.ejs';
-import membersFormTpl from '../views/members/form.ejs';
-import membersDetailTpl from '../views/members/detail.ejs';
-import plansListTpl from '../views/plans/list.ejs';
-import plansFormTpl from '../views/plans/form.ejs';
+// Los templates son funciones JS pre-compiladas por el plugin EJS de esbuild.
+// No hay eval ni new Function en runtime → compatible con Cloudflare Workers.
+import layoutFn      from '../views/layout.ejs';
+import loginFn       from '../views/login.ejs';
+import dashboardFn   from '../views/dashboard.ejs';
+import checkinFn     from '../views/checkin.ejs';
+import statsFn       from '../views/stats.ejs';
+import screensaverFn from '../views/screensaver.ejs';
+import signaFn       from '../views/signage.ejs';
+import carouselAdminFn  from '../views/carousel-admin.ejs';
+import membersListFn    from '../views/members/list.ejs';
+import membersFormFn    from '../views/members/form.ejs';
+import membersDetailFn  from '../views/members/detail.ejs';
+import plansListFn      from '../views/plans/list.ejs';
+import plansFormFn      from '../views/plans/form.ejs';
 
 const TEMPLATES = {
-  layout: layoutTpl,
-  login: loginTpl,
-  dashboard: dashboardTpl,
-  checkin: checkinTpl,
-  stats: statsTpl,
-  screensaver: screensaverTpl,
-  'carousel-admin': carouselAdminTpl,
-  'members/list': membersListTpl,
-  'members/form': membersFormTpl,
-  'members/detail': membersDetailTpl,
-  'plans/list': plansListTpl,
-  'plans/form': plansFormTpl,
+  layout:           layoutFn,
+  login:            loginFn,
+  dashboard:        dashboardFn,
+  checkin:          checkinFn,
+  stats:            statsFn,
+  screensaver:      screensaverFn,
+  signage:          signaFn,
+  'carousel-admin': carouselAdminFn,
+  'members/list':   membersListFn,
+  'members/form':   membersFormFn,
+  'members/detail': membersDetailFn,
+  'plans/list':     plansListFn,
+  'plans/form':     plansFormFn,
 };
 
-/**
- * Renderiza un template EJS con sus datos.
- * Si data.layout === false, retorna el HTML sin envoltura de layout.
- */
-export function render(name, data = {}) {
-  const tpl = TEMPLATES[name];
-  if (!tpl) throw new Error(`Template no encontrado: ${name}`);
+function escape(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&#34;')
+    .replace(/'/g, '&#39;');
+}
 
-  const opts = { rmWhitespace: false };
+function rethrow(err) { throw err; }
+
+export function render(name, data = {}) {
+  const fn = TEMPLATES[name];
+  if (!fn) throw new Error(`Template no encontrado: ${name}`);
 
   if (data.layout === false) {
-    return ejs.render(tpl, data, opts);
+    return fn(data, escape, null, rethrow);
   }
 
-  const body = ejs.render(tpl, data, opts);
-  return ejs.render(layoutTpl, { ...data, body }, opts);
+  const body = fn(data, escape, null, rethrow);
+  return layoutFn({ ...data, body }, escape, null, rethrow);
 }

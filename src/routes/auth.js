@@ -30,7 +30,7 @@ app.post('/login', async (c) => {
   setCookie(c, 'token', token, {
     httpOnly: true,
     secure: true,
-    sameSite: 'Strict',
+    sameSite: 'Lax',
     maxAge: 60 * 60 * 12, // 12 horas
     path: '/',
   });

@@ -8,23 +8,21 @@ compatibility_flags = ["nodejs_compat"]
 directory = "./src/public"
 binding = "ASSETS"
 
-# D1 SQLite — ejecutar primero: wrangler d1 create gimnasio
+# D1 SQLite
 [[d1_databases]]
 binding = "DB"
 database_name = "gimnasio"
-database_id = ""
+database_id = "2f988e66-9076-458f-8853-e06366fda9dc"
 
-# R2 Object Storage (imágenes de carrusel y destacada)
-# Ejecutar: wrangler r2 bucket create panther-gym-assets
+# R2 Object Storage
 [[r2_buckets]]
 binding = "R2"
 bucket_name = "panther-gym-assets"
 
 # KV Namespace (tokens Spotify + caché)
-# Ejecutar: wrangler kv namespace create gimnasio-kv
 [[kv_namespaces]]
 binding = "KV"
-id = ""
+id = "c6411b5080c24df99354eab3b952325c"
 
 # Secretos — configurar con:
 #   wrangler secret put JWT_SECRET

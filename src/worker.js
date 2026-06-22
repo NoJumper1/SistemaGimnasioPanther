@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAuth } from './middleware/requireAuth.js';
+import { requireAuth, requireAdmin } from './middleware/requireAuth.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
 import membersRoutes from './routes/members.js';
@@ -7,11 +7,13 @@ import plansRoutes from './routes/plans.js';
 import checkinRoutes from './routes/checkin.js';
 import statsRoutes from './routes/stats.js';
 import screensaverRoutes from './routes/screensaver.js';
+import signageRoutes from './routes/signage.js';
 
 const app = new Hono();
 
 // ── Rutas públicas ────────────────────────────────────────────────
 app.route('/', authRoutes);
+app.route('/', signageRoutes); // pantalla de anuncios + API pública
 
 // ── Imágenes subidas por el usuario (R2) ─────────────────────────
 // Deben ser públicas (el screensaver las consume sin sesión)
@@ -38,10 +40,19 @@ const secured = new Hono();
 secured.use('*', requireAuth);
 secured.route('/', dashboardRoutes);
 secured.route('/members', membersRoutes);
-secured.route('/plans', plansRoutes);
 secured.route('/checkin', checkinRoutes);
-secured.route('/stats', statsRoutes);
 secured.route('/', screensaverRoutes);
+
+// Solo admin: planes, estadísticas y panel de carrusel
+secured.use('/plans/*', requireAdmin);
+secured.use('/plans', requireAdmin);
+secured.use('/stats', requireAdmin);
+secured.use('/screensaver/carousel-admin', requireAdmin);
+secured.use('/screensaver/carousel/*', requireAdmin);
+secured.use('/screensaver/featured/*', requireAdmin);
+secured.use('/screensaver/spotify/*', requireAdmin);
+secured.route('/plans', plansRoutes);
+secured.route('/stats', statsRoutes);
 
 app.route('/', secured);
 

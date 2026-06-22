@@ -90,7 +90,7 @@ export async function getNowPlaying(env) {
   const state = await fetchSpotifyState(env, tokens);
 
   // Guardar en caché por 15 segundos
-  await env.KV.put('spotify:nowplaying', JSON.stringify(state), { expirationTtl: 15 });
+  await env.KV.put('spotify:nowplaying', JSON.stringify(state), { expirationTtl: 60 });
   return state;
 }
 

@@ -24,10 +24,14 @@
         <ul class="navbar-nav me-auto ms-3 gap-1">
           <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
           <li class="nav-item"><a class="nav-link" href="/members">Socios</a></li>
+          <% if (admin && admin.role === 'admin') { %>
           <li class="nav-item"><a class="nav-link" href="/plans">Planes</a></li>
+          <% } %>
           <li class="nav-item"><a class="nav-link" href="/checkin">Check-in</a></li>
+          <% if (admin && admin.role === 'admin') { %>
           <li class="nav-item"><a class="nav-link" href="/stats">Estadísticas</a></li>
           <li class="nav-item"><a class="nav-link" href="/screensaver/carousel-admin">Carrusel</a></li>
+          <% } %>
         </ul>
         <form action="/logout" method="POST" class="d-flex">
           <button class="btn btn-outline-light btn-sm" type="submit">Cerrar sesión</button>

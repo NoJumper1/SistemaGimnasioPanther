@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anuncios · Panther Zone Gym</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --red: #e63231; --bg: #0d0d0f; --surface: #18181b; --border: rgba(255,255,255,0.08); }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg); color: #fff;
+      font-family: 'Inter', sans-serif;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    #sg-header {
+      flex-shrink: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.1rem 2rem;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .sg-brand { display: flex; align-items: center; gap: 0.7rem; }
+    .sg-logo  { height: 40px; width: auto; }
+    .sg-gym-name { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+    .sg-accent { color: var(--red); }
+    .sg-clock { text-align: right; }
+    .sg-time  { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+    .sg-date  { font-size: 0.8rem; color: rgba(255,255,255,0.55); margin-top: 2px; text-transform: capitalize; }
+
+    /* ── Área principal: video ───────────────────────────────── */
+    #sg-main {
+      flex: 1; min-height: 0;
+      position: relative;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    #sg-video {
+      width: 100%; height: 100%;
+      object-fit: contain;          /* contain para que se vea el video completo */
+      display: none;
+    }
+    #sg-video.visible { display: block; }
+
+    /* Estado sin videos */
+    #sg-no-video {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1rem;
+      color: rgba(255,255,255,0.15); text-align: center;
+      position: absolute; inset: 0;
+    }
+    #sg-no-video.hidden { display: none; }
+
+    /* ── Barra Spotify ───────────────────────────────────────── */
+    #sg-np-bar {
+      flex-shrink: 0;
+      display: none; align-items: center; gap: 0.8rem;
+      padding: 0.6rem 2rem;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+    #sg-np-bar.visible { display: flex; }
+    .sg-np-icon   { color: #1db954; flex-shrink: 0; }
+    .sg-np-label  { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,0.4); flex-shrink: 0; }
+    .sg-np-sep    { width: 1px; height: 14px; background: var(--border); flex-shrink: 0; }
+    .sg-np-album  { width: 34px; height: 34px; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
+    .sg-np-song   { font-weight: 600; font-size: 0.9rem; }
+    .sg-np-dot    { color: rgba(255,255,255,0.3); font-size: 0.7rem; }
+    .sg-np-artist { color: rgba(255,255,255,0.6); font-size: 0.85rem; }
+    .sg-np-wave   { display: flex; align-items: flex-end; gap: 2px; height: 15px; margin-left: 2px; }
+    .sg-np-wave span {
+      width: 3px; background: #1db954; border-radius: 2px;
+      animation: wave 0.85s ease-in-out infinite alternate;
+    }
+    .sg-np-wave span:nth-child(1) { height: 5px;  animation-delay: 0s; }
+    .sg-np-wave span:nth-child(2) { height: 13px; animation-delay: 0.15s; }
+    .sg-np-wave span:nth-child(3) { height: 8px;  animation-delay: 0.3s; }
+    .sg-np-wave span:nth-child(4) { height: 11px; animation-delay: 0.45s; }
+    .sg-np-wave span:nth-child(5) { height: 5px;  animation-delay: 0.6s; }
+    @keyframes wave { to { transform: scaleY(0.25); } }
+
+    /* ── Carrusel de imágenes (abajo) ────────────────────────── */
+    #sg-carousel {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 0.6rem 0 0.7rem;
+    }
+    .sg-carousel-label {
+      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.14em;
+      color: rgba(255,255,255,0.3); padding: 0 2rem 0.5rem;
+    }
+    .sg-carousel-viewport {
+      overflow: hidden; width: 100%;
+    }
+    #sg-carousel-track {
+      display: flex; gap: 10px;
+      padding: 0 2rem;
+      animation: ticker linear infinite;
+      will-change: transform;
+    }
+    #sg-carousel-track img {
+      height: 130px; width: auto;
+      border-radius: 8px; object-fit: cover;
+      flex-shrink: 0;
+    }
+    @keyframes ticker {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(var(--ticker-shift)); }
+    }
+    #sg-carousel-empty {
+      height: 130px;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.15); font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header id="sg-header">
+    <div class="sg-brand">
+      <img src="/img/logo.png" alt="Logo" class="sg-logo">
+      <span class="sg-gym-name">Panther <span class="sg-accent">Zone</span> Gym</span>
+    </div>
+    <div class="sg-clock">
+      <div class="sg-time" id="sg-time">--:--</div>
+      <div class="sg-date" id="sg-date">---</div>
+    </div>
+  </header>
+
+  <!-- Área de video -->
+  <main id="sg-main">
+    <div id="sg-no-video">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="6" width="20" height="14" rx="3" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 2"/>
+        <path d="M10 9l6 3.5L10 16V9z" stroke="currentColor" stroke-width="0.8" stroke-linejoin="round"/>
+      </svg>
+      <span>Sin videos · Sube videos MP4 desde el panel de administración</span>
+    </div>
+    <video id="sg-video" muted playsinline></video>
+  </main>
+
+  <!-- Spotify -->
+  <div id="sg-np-bar">
+    <div class="sg-np-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <circle cx="9" cy="18" r="3" fill="currentColor"/>
+        <circle cx="19" cy="16" r="3" fill="currentColor"/>
+        <path d="M12 18V6l10-2v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="sg-np-label">Está sonando</span>
+    <div class="sg-np-sep"></div>
+    <img id="sg-album" class="sg-np-album" src="" alt="" style="display:none">
+    <span class="sg-np-song" id="sg-song">—</span>
+    <span class="sg-np-dot">·</span>
+    <span class="sg-np-artist" id="sg-artist">—</span>
+    <div class="sg-np-wave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- Carrusel de imágenes -->
+  <section id="sg-carousel">
+    <div class="sg-carousel-label">Promociones &amp; Productos</div>
+    <div class="sg-carousel-viewport">
+      <div id="sg-carousel-track"></div>
+      <div id="sg-carousel-empty" style="display:none">
+        Sin imágenes · Sube imágenes al carrusel desde el panel de administración
+      </div>
+    </div>
+  </section>
+
+  <script src="/js/signage.js"></script>
+</body>
+</html>

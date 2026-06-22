@@ -5,6 +5,9 @@ import * as spotify from '../services/spotify.js';
 
 const app = new Hono();
 const IMAGE_RE = /\.(jpe?g|png|gif|webp)$/i;
+const MEDIA_RE = /\.(jpe?g|png|gif|webp|mp4|webm)$/i;
+const VIDEO_RE = /\.(mp4|webm)$/i;
+const ALLOWED_UPLOAD = /^(image\/(jpeg|png|gif|webp)|video\/(mp4|webm))$/;
 
 /* ── Helpers R2 ─────────────────────────────────────────────── */
 async function listR2Images(r2, prefix) {
@@ -13,6 +16,19 @@ async function listR2Images(r2, prefix) {
     .map((o) => o.key.replace(prefix, ''))
     .filter((f) => IMAGE_RE.test(f))
     .sort();
+}
+
+// Devuelve { filename, type } para imágenes y videos
+async function listR2Media(r2, prefix) {
+  const list = await r2.list({ prefix });
+  return list.objects
+    .map((o) => {
+      const filename = o.key.replace(prefix, '');
+      if (!MEDIA_RE.test(filename)) return null;
+      return { filename, type: VIDEO_RE.test(filename) ? 'video' : 'image' };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.filename.localeCompare(b.filename));
 }
 
 async function getFeaturedImage(r2) {
@@ -98,15 +114,16 @@ app.post('/screensaver/spotify/disconnect', async (c) => {
    ═══════════════════════════════════════════════════════════════ */
 
 app.get('/screensaver/carousel-admin', async (c) => {
-  const [images, featured, spotifyState] = await Promise.all([
-    listR2Images(c.env.R2, 'carousel/'),
+  const [media, featured, spotifyState] = await Promise.all([
+    listR2Media(c.env.R2, 'carousel/'),
     getFeaturedImage(c.env.R2),
     spotify.getNowPlaying(c.env),
   ]);
 
   return c.html(render('carousel-admin', {
-    title: 'Carrusel · Protector de Pantalla',
-    images,
+    title: 'Carrusel · Admin',
+    admin: c.get('admin'),
+    media,
     featured,
     spotifyState,
     spotifyConfigured: spotify.isConfigured(c.env),
@@ -114,13 +131,18 @@ app.get('/screensaver/carousel-admin', async (c) => {
   }));
 });
 
-/* ── Upload carrusel ─────────────────────────────────────────── */
+/* ── Upload carrusel (imagen o video) ───────────────────────── */
 app.post('/screensaver/carousel/upload', async (c) => {
   const formData = await c.req.formData();
   const file = formData.get('photo');
 
-  if (file && file.size > 0 && file.type.startsWith('image/')) {
-    if (file.size > 5 * 1024 * 1024) return c.html('Imagen demasiado grande (máx. 5 MB)', 400);
+  if (file && file.size > 0) {
+    if (!ALLOWED_UPLOAD.test(file.type)) {
+      return c.redirect('/screensaver/carousel-admin');
+    }
+    const isVideo = file.type.startsWith('video/');
+    const maxSize = isVideo ? 200 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) return c.redirect('/screensaver/carousel-admin');
     const ext = file.name.split('.').pop().toLowerCase();
     const key = `carousel/${Date.now()}.${ext}`;
     await c.env.R2.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
@@ -129,11 +151,11 @@ app.post('/screensaver/carousel/upload', async (c) => {
   return c.redirect('/screensaver/carousel-admin');
 });
 
-/* ── Borrar imagen carrusel ──────────────────────────────────── */
+/* ── Borrar imagen/video del carrusel ────────────────────────── */
 app.post('/screensaver/carousel/delete', async (c) => {
   const body = await c.req.parseBody();
   const filename = (body.filename || '').replace(/[^a-zA-Z0-9._-]/g, '');
-  if (filename && IMAGE_RE.test(filename)) {
+  if (filename && MEDIA_RE.test(filename)) {
     await c.env.R2.delete(`carousel/${filename}`);
   }
   return c.redirect('/screensaver/carousel-admin');

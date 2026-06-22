@@ -1,6 +1,31 @@
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="background:var(--surface);border:1px solid rgba(255,255,255,0.1)">
+      <div class="modal-body text-center py-4">
+        <div style="font-size:2rem;margin-bottom:.5rem">🗑</div>
+        <p class="mb-1" style="font-weight:600">¿Eliminar archivo?</p>
+        <p class="mb-0" style="font-size:0.78rem;color:var(--text-dim)" id="delete-modal-name"></p>
+      </div>
+      <div class="modal-footer border-0 justify-content-center gap-2 pt-0 pb-3">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger btn-sm px-4" id="delete-modal-confirm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Formulario oculto para eliminar archivos del carrusel -->
+<form id="form-carousel-delete" action="/screensaver/carousel/delete" method="POST" style="display:none">
+  <input type="hidden" name="filename" id="delete-filename-input">
+</form>
+
 <div class="page-header">
-  <h1>Protector de Pantalla · Admin</h1>
-  <a href="/screensaver" target="_blank" class="btn btn-success btn-sm">Ver protector</a>
+  <h1>Pantalla · Admin</h1>
+  <div class="d-flex gap-2">
+    <a href="/screensaver" target="_blank" class="btn btn-outline-light btn-sm">Ver protector</a>
+    <a href="/signage" target="_blank" class="btn btn-success btn-sm">Ver anuncios</a>
+  </div>
 </div>
 
 <!-- ── Spotify "Está sonando" ───────────────────────────────────── -->
@@ -23,25 +48,25 @@
     <% } %>
 
     <% if (!spotifyConfigured) { %>
-      <!-- Paso 1: configurar credenciales -->
       <div class="alert alert-warning mb-3" style="font-size:0.875rem">
-        <strong>Configuración requerida.</strong> Para conectar Spotify, agrega las siguientes variables a tu archivo <code>.env</code>:
+        <strong>Configuración requerida.</strong> Para conectar Spotify, ejecuta estos comandos en tu terminal:
       </div>
       <div class="mb-3" style="background:rgba(255,255,255,0.04);border-radius:8px;padding:1rem;font-family:monospace;font-size:0.82rem;border:1px solid rgba(255,255,255,0.08)">
-        SPOTIFY_CLIENT_ID=tu_client_id<br>
-        SPOTIFY_CLIENT_SECRET=tu_client_secret
+        wrangler secret put SPOTIFY_CLIENT_ID<br>
+        wrangler secret put SPOTIFY_CLIENT_SECRET<br>
+        wrangler secret put SPOTIFY_REDIRECT_URI
       </div>
       <p style="font-size:0.82rem;color:var(--text-dim)">
-        Obtén estas credenciales en
+        Obtén las credenciales en
         <a href="https://developer.spotify.com/dashboard" target="_blank" style="color:#1db954">developer.spotify.com/dashboard</a>
-        → Crear app → Redirect URI: <code>http://localhost:3000/screensaver/spotify/callback</code>
+        → Crear app → Redirect URI:
+        <code>https://panther-zone-gym.gabrielnoriegamaza.workers.dev/screensaver/spotify/callback</code>
       </p>
       <p style="font-size:0.82rem;color:var(--text-dim);margin-top:.5rem">
-        Después de agregar las variables, reinicia el servidor y vuelve a esta página.
+        Después de configurar los secretos, vuelve a ejecutar <code>npm run deploy</code> y recarga esta página.
       </p>
 
     <% } else if (!spotifyState.connected) { %>
-      <!-- Paso 2: autorizar cuenta -->
       <p class="mb-3" style="font-size:0.875rem;color:var(--text-dim)">
         Las credenciales están configuradas. Conecta la cuenta de Spotify del dueño para que el sistema detecte la canción en reproducción automáticamente.
       </p>
@@ -53,7 +78,6 @@
       </a>
 
     <% } else { %>
-      <!-- Conectado: mostrar estado -->
       <div class="row g-4 align-items-center">
         <div class="col-md-7">
           <% if (spotifyState.active && spotifyState.song) { %>
@@ -73,13 +97,13 @@
             </div>
           <% } %>
           <p style="font-size:0.78rem;color:var(--text-dim)">
-            El protector de pantalla se actualiza automáticamente cada 15 segundos.
+            El protector de pantalla se actualiza automáticamente cada 60 segundos.
           </p>
         </div>
         <div class="col-md-5 text-end">
-          <form action="/screensaver/spotify/disconnect" method="POST"
-                onsubmit="return confirm('¿Desconectar la cuenta de Spotify?')">
-            <button type="submit" class="btn btn-outline-danger btn-sm">Desconectar Spotify</button>
+          <form action="/screensaver/spotify/disconnect" method="POST" id="form-spotify-disconnect">
+            <button type="button" class="btn btn-outline-danger btn-sm"
+                    onclick="confirmDelete(null, 'spotify')">Desconectar Spotify</button>
           </form>
         </div>
       </div>
@@ -101,12 +125,11 @@
       <div class="col-md-4">
         <% if (featured) { %>
           <div style="position:relative;border-radius:10px;overflow:hidden;aspect-ratio:3/4;background:#111">
-            <img src="<%= featured %>" alt="Imagen destacada"
-                 style="width:100%;height:100%;object-fit:cover">
+            <img src="<%= featured %>" alt="Imagen destacada" style="width:100%;height:100%;object-fit:cover">
           </div>
-          <form action="/screensaver/featured/delete" method="POST" class="mt-2"
-                onsubmit="return confirm('¿Eliminar la imagen destacada?')">
-            <button type="submit" class="btn btn-danger btn-sm w-100">Eliminar imagen</button>
+          <form action="/screensaver/featured/delete" method="POST" class="mt-2" id="form-featured-delete">
+            <button type="button" class="btn btn-danger btn-sm w-100"
+                    onclick="confirmDelete(null, 'featured')">Eliminar imagen</button>
           </form>
         <% } else { %>
           <div style="border:1px dashed rgba(255,255,255,0.15);border-radius:10px;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:0.8rem">
@@ -135,59 +158,130 @@
   </div>
 </div>
 
-<!-- ── Carrusel de promociones ──────────────────────────────────── -->
+<!-- ── Subir al carrusel ─────────────────────────────────────────── -->
 <div class="card mb-4">
-  <div class="card-header">Subir imagen al carrusel</div>
+  <div class="card-header">Subir al carrusel de anuncios</div>
   <div class="card-body">
     <form action="/screensaver/carousel/upload" method="POST" enctype="multipart/form-data">
       <div class="row g-2 align-items-end">
         <div class="col-md-8">
-          <label class="form-label">Imagen (JPG, PNG, GIF o WEBP — máx. 5 MB)</label>
-          <input type="file" name="photo" class="form-control" accept="image/*" required>
+          <label class="form-label">Imagen o video</label>
+          <input type="file" name="photo" class="form-control" accept="image/*,video/mp4,video/webm" required>
         </div>
         <div class="col-md-4">
-          <button type="submit" class="btn btn-primary w-100">Subir imagen</button>
+          <button type="submit" class="btn btn-primary w-100">Subir</button>
         </div>
       </div>
+      <p class="mt-2 mb-0" style="font-size:0.78rem;color:var(--text-dim)">
+        Imágenes: JPG, PNG, WEBP, GIF — máx. 5 MB · Videos: MP4, WEBM — máx. 200 MB · Los videos se reproducen sin sonido.
+      </p>
     </form>
   </div>
 </div>
 
-<div class="card">
+<%
+  var mediaImages = media.filter(function(i){ return i.type === 'image'; });
+  var mediaVideos = media.filter(function(i){ return i.type === 'video'; });
+%>
+
+<!-- ── Imágenes ──────────────────────────────────────────────────── -->
+<div class="card mb-4">
   <div class="card-header">
     Imágenes en el carrusel
     <span style="color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0">
-      (<%= images.length %> <%= images.length === 1 ? 'imagen' : 'imágenes' %>)
+      (<%= mediaImages.length %> <%= mediaImages.length === 1 ? 'imagen' : 'imágenes' %>)
     </span>
   </div>
   <div class="card-body">
-    <% if (images.length === 0) { %>
-      <p class="text-muted mb-0" style="font-size:0.875rem">
-        No hay imágenes todavía. Sube la primera para que aparezca en el protector de pantalla.
-      </p>
+    <% if (mediaImages.length === 0) { %>
+      <p class="text-muted mb-0" style="font-size:0.875rem">No hay imágenes todavía.</p>
     <% } else { %>
       <div class="row g-3">
-        <% images.forEach(function(img) { %>
+        <% mediaImages.forEach(function(item) { %>
           <div class="col-6 col-md-3">
             <div class="card h-100">
-              <img src="/img/carousel/<%= img %>"
+              <img src="/img/carousel/<%= item.filename %>"
                    class="card-img-top"
                    style="height:130px;object-fit:cover;border-radius:var(--radius) var(--radius) 0 0"
                    alt="">
               <div class="card-body p-2 text-center">
-                <p class="mb-2" style="font-size:0.72rem;color:var(--text-dim);word-break:break-all">
-                  <%= img %>
-                </p>
-                <form action="/screensaver/carousel/delete" method="POST"
-                      onsubmit="return confirm('¿Eliminar esta imagen del carrusel?')">
-                  <input type="hidden" name="filename" value="<%= img %>">
-                  <button type="submit" class="btn btn-danger btn-sm w-100">Eliminar</button>
-                </form>
+                <p class="mb-2" style="font-size:0.72rem;color:var(--text-dim);word-break:break-all"><%= item.filename %></p>
+                <button type="button" class="btn btn-danger btn-sm w-100"
+                        onclick="confirmDelete('<%= item.filename %>')">Eliminar</button>
               </div>
             </div>
           </div>
-        <% }) %>
+        <% }); %>
       </div>
     <% } %>
   </div>
 </div>
+
+<!-- ── Videos ────────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    Videos
+    <span style="color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0">
+      (<%= mediaVideos.length %> <%= mediaVideos.length === 1 ? 'video' : 'videos' %>)
+    </span>
+  </div>
+  <div class="card-body">
+    <% if (mediaVideos.length === 0) { %>
+      <p class="text-muted mb-0" style="font-size:0.875rem">No hay videos todavía. Sube un MP4 o WEBM para que aparezca en la pantalla de anuncios.</p>
+    <% } else { %>
+      <div class="row g-3">
+        <% mediaVideos.forEach(function(item) { %>
+          <div class="col-6 col-md-4">
+            <div class="card h-100">
+              <video src="/img/carousel/<%= item.filename %>"
+                     style="width:100%;border-radius:var(--radius) var(--radius) 0 0;display:block;background:#0a0a0a;max-height:200px"
+                     preload="metadata"
+                     controls
+                     muted></video>
+              <div class="card-body p-2 text-center">
+                <p class="mb-2" style="font-size:0.72rem;color:var(--text-dim);word-break:break-all"><%= item.filename %></p>
+                <button type="button" class="btn btn-danger btn-sm w-100"
+                        onclick="confirmDelete('<%= item.filename %>')">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modal         = null;
+  var nameEl        = document.getElementById('delete-modal-name');
+  var confirmBtn    = document.getElementById('delete-modal-confirm');
+  var pendingAction = null;
+
+  window.confirmDelete = function (filename, type) {
+    // Inicializar el modal la primera vez que se usa (Bootstrap ya cargó)
+    if (!modal) modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+    if (type === 'featured') {
+      nameEl.textContent = 'Imagen destacada';
+      pendingAction = function () { document.getElementById('form-featured-delete').submit(); };
+    } else if (type === 'spotify') {
+      nameEl.textContent = '¿Desconectar la cuenta de Spotify?';
+      pendingAction = function () { document.getElementById('form-spotify-disconnect').submit(); };
+    } else {
+      nameEl.textContent = filename;
+      pendingAction = function () {
+        document.getElementById('delete-filename-input').value = filename;
+        document.getElementById('form-carousel-delete').submit();
+      };
+    }
+    modal.show();
+  };
+
+  confirmBtn.addEventListener('click', function () {
+    if (modal) modal.hide();
+    if (pendingAction) pendingAction();
+    pendingAction = null;
+  });
+})();
+</script>
